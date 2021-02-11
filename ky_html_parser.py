@@ -2,13 +2,26 @@ from bs4 import BeautifulSoup
 import re
 
 class KyHtmlOperations:
+    # # create a soup
+    # def create_soup(self):
+    #     with open("/home/mis/gov.ky.krs.title.01.html") as fp:
+    #         soup = BeautifulSoup(fp, "lxml")
+    #         return soup
+
+    # soup initialization
+    def __init__(self,soup):
+        self.soup = soup
+
+    #def start_function(self):
+
+
+
     # assign id to chapter header
     def chapter_header_id(self, soup):
         all_chapter_header = soup.findAll("p", class_="p3")
         for chap_head in all_chapter_header:
             chap_nums = re.findall(r'\d', chap_head.text)
-            chap_id = "".join(chap_nums)
-            chap_head['id'] = f"t01c0{chap_id}"
+            chap_head['id'] = f"t01c0{chap_nums}"
             chap_head.name = "h2"
 
     # assign id to Section header
@@ -122,21 +135,45 @@ class KyHtmlOperations:
                 chpter.wrap(div_tag)
 
 
+    # add chapter name
+    def chap_name(self, soup):
+
+
+
+
+
+        all_chapter_header = soup.findAll("p", class_="p3")
+        for chap_head in all_chapter_header:
+            chap_nums = re.findall(r'\d', chap_head.text)
+            if chap_nums != []:
+                chap_head['id'] = f"t01c0{chap_nums[0]}"
+
+            #chap_id = int(chap_nums)
+            #print(chap_nums)
+            # print(chap_nums)
+            #chap_id = "".join(chap_nums)
+            #chap_head['id'] = f"t01c0{chap_id}"
+            #chap_head.name = "h2"
 
 
 
 with open("/home/mis/gov.ky.krs.title.01.html") as fp:
     soup = BeautifulSoup(fp, "lxml")
 
-KyHtmlOperations_obj = KyHtmlOperations()  # create a class object
-KyHtmlOperations_obj. set_ul_tag(soup)
-KyHtmlOperations_obj.chapter_header_id(soup)
-KyHtmlOperations_obj.section_header_id(soup)
-KyHtmlOperations_obj.set_appropriate_tag(soup)
-KyHtmlOperations_obj.chapter_nav_id(soup)
-KyHtmlOperations_obj.chapter_nav(soup)
-KyHtmlOperations_obj.main_tag(soup)
-KyHtmlOperations_obj.section_nav(soup)
+KyHtmlOperations_obj = KyHtmlOperations(soup)  # create a class object
+
+KyHtmlOperations_obj.chap_name(soup)
+
+
+#KyHtmlOperations_obj. set_ul_tag(soup)
+
+#KyHtmlOperations_obj.chapter_header_id(soup)
+#KyHtmlOperations_obj.section_header_id(soup)
+#KyHtmlOperations_obj.set_appropriate_tag(soup)
+#KyHtmlOperations_obj.chapter_nav_id(soup)
+#KyHtmlOperations_obj.chapter_nav(soup)
+#KyHtmlOperations_obj.main_tag(soup)
+#KyHtmlOperations_obj.section_nav(soup)
 #KyHtmlOperations_obj.clear_tag(soup)
 #KyHtmlOperations_obj.div_tag(soup)
 #KyHtmlOperations_obj.nav_wrap(soup)
