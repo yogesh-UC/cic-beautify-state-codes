@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 import re
 
 
@@ -34,7 +34,7 @@ class KyHtmlOperations:
                     nav.wrap(ul_tag)
                     nav.name = "li"
             else:
-                break  # break from all p after n
+                break  # break from all p after p3
 
     # Assign id to chapter nav items
     def chapter_nav_id(self):
@@ -67,23 +67,67 @@ class KyHtmlOperations:
         for tag in self.soup.findAll("p", class_="p2"):
             tag.name = "li"
 
+    # clear junk
+    def clear_junk(self):
+        [span.decompose() for span in self.soup.main.findAll() if span.name == "span"]
+        [junk.decompose() for junk in self.soup.main.findAll("p", class_="p5")]
+        [tag.unwrap() for tag in self.soup.findAll("b")]
+
     # wrap div
     def div_tag(self):
-        [span.decompose() for span in self.soup.main.findAll() if span.name == "span"]
         [ch.wrap(self.soup.new_tag("div")) for ch in self.soup.main.findAll() if ch.name == "h2"]
         ul_tag = self.soup.new_tag("ul")
         for ch in self.soup.main.findAll():
             if ch.name == "li":
                 if ch.find_previous().name == "li":
-                    print(ch)
                     ul_tag.append(ch)
                 else:
                     ul_tag = self.soup.new_tag("ul")
                     ch.wrap(ul_tag)
 
+    # wrap the contents with ordered list
+    def wrap_with_ordered_list1(self):
+        for tag in self.soup.findAll("p", class_="p8"):
+            tag.name = "h4"
+
+        pattern2 = re.compile(r'^[(]\D[)]')
+        pattern = re.compile(r'^(\d+)|^([(]\d+[)])')
+        ol_tag = self.soup.new_tag("ol")
+        ol_tag2 = self.soup.new_tag("ol")
+        for tag in self.soup.findAll("p", class_="p6"):
+            if re.match(pattern, tag.text):
+                tag.name = "li"
+
+        for tag in self.soup.findAll(["li", "p"], class_="p6"):
+            if re.match(pattern, tag.text):
+                if tag.name == "li":
+                    if tag.find_previous().name == "li" or tag.find_previous().name == "p":
+                        ol_tag.append(tag)
+                    else:
+                        ol_tag = self.soup.new_tag("ol")
+                        tag.wrap(ol_tag)
+
+            elif re.match(pattern2, tag.text):
+                if tag.name == "p":
+                    if tag.find_previous().name == "p":
+                        ol_tag2.append(tag)
+                    elif tag.find_previous().name == "li":
+                        ol_tag2 = self.soup.new_tag("ol")
+                        tag.wrap(ol_tag2)
+                        ol_tag.append(ol_tag2)
+
+        for ol in self.soup.findAll("p", class_="p6"):
+            if re.match(pattern2, ol.text):
+                ol.name = "li"
+
+    # wrap it with div
+    def main_div(self):
+        for div in self.soup.main.findAll():
+            print(div)
 
 
-    # main class
+
+    # main method
     def start(self):
         self.create_soup()
         self.set_ul_tag()
@@ -94,7 +138,10 @@ class KyHtmlOperations:
         self.chapter_nav()
         self.main_tag()
         self.section_nav()
+        self.clear_junk()
         self.div_tag()
+        self.wrap_with_ordered_list1()
+        self.main_div()
 
         self.write_into_soup()
 

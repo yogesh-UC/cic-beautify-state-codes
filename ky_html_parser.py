@@ -157,6 +157,74 @@ class KyHtmlOperations:
 
 
 
+
+# ordered list---------(a)
+    def wrap_with_ordered_list(self):
+        pattern2 = re.compile(r'^[(]\D[)]')
+        pattern1 = re.compile(r'^(\d+)|^([(]\d+[)])')
+        pattern = re.compile(r'^(\d+)|^([(]\d+[)])|^[(].[)]')
+
+        # convert p into li
+        for tag in self.soup.findAll("p", class_="p6"):
+            if re.match(pattern, tag.text):
+                tag.name = "li"
+
+            if re.match(pattern2, tag.text):
+                if not re.match(pattern, tag.find_previous().text):
+                    ol_tag.append(tag)
+                else:
+                    ol_tag = self.soup.new_tag("ol")
+                    tag.wrap(ol_tag)
+
+            # ol_tag = self.soup.new_tag("ol")
+            # if re.match(pattern, tag.text):
+            #     if tag.find_previous().name == "li":
+            #         if re.match(pattern1, tag.next):
+            #             if re.match(pattern1, tag.find_previous().text) or re.match(pattern2, tag.find_previous().text):
+            #                 ol_tag.append(tag)
+            #         else:
+            #             if re.match(pattern2,tag.find_previous().text):
+            #                 ol_tag.append(tag)
+            #             else:
+            #                 tag.wrap(ol_tag)
+            #                 ol_tag.append(tag)
+            #     else:
+            #         ol_tag = self.soup.new_tag("ol")
+            #         tag.wrap(ol_tag)
+
+    # ordered list------------(1)(a)
+    def ordered_list(self):
+        for tag in self.soup.findAll("p", class_="p8"):
+            tag.name = "h4"
+
+        pattern2 = re.compile(r'^[(]\D[)]')
+        pattern1 = re.compile(r'^(\d+)|^([(]\d+[)])')
+        pattern = re.compile(r'^(\d+)|^([(]\d+[)])|^[(].[)]')
+
+        # convert p into li
+        for tag in self.soup.findAll("p", class_="p6"):
+            if re.match(pattern, tag.text):
+                tag.name = "li"
+
+        # list
+        ol_tag1 = self.soup.new_tag("ol")
+        ol_tag2 = self.soup.new_tag("ol")
+        for tag in self.soup.findAll("li", class_="p6"):
+            if re.match(pattern1, tag.text):
+                if re.match(pattern1, tag.find_previous().text) or re.match(pattern2, tag.find_previous().text):
+                    ol_tag1.append(tag)
+                else:
+                    ol_tag1 = self.soup.new_tag("ol")
+                    tag.wrap(ol_tag1)
+            else:
+                if re.match(pattern2, tag.find_previous().text):
+                    ol_tag2.append(tag)
+                else:
+                    ol_tag2 = self.soup.new_tag("ol")
+                    tag.wrap(ol_tag2)
+                    # ol_tag1.append(tag)
+
+
 with open("/home/mis/gov.ky.krs.title.01.html") as fp:
     soup = BeautifulSoup(fp, "lxml")
 
