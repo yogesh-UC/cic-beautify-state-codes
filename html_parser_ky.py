@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup, NavigableString
+from bs4 import BeautifulSoup
 import re
 
 
@@ -73,17 +73,23 @@ class KyHtmlOperations:
         [junk.decompose() for junk in self.soup.main.findAll("p", class_="p5")]
         [tag.unwrap() for tag in self.soup.findAll("b")]
 
-    # wrap div
+    # wrap section nav with ul
     def div_tag(self):
         [ch.wrap(self.soup.new_tag("div")) for ch in self.soup.main.findAll() if ch.name == "h2"]
-        ul_tag = self.soup.new_tag("ul")
+        nav_tag = self.soup.new_tag("nav")
+        ul_tag = self.soup.new_tag("ul", class_="leaders")
         for ch in self.soup.main.findAll():
             if ch.name == "li":
                 if ch.find_previous().name == "li":
+                    nav_tag.append(ch)
                     ul_tag.append(ch)
+
                 else:
-                    ul_tag = self.soup.new_tag("ul")
+                    nav_tag = self.soup.new_tag("nav")
+                    ul_tag = self.soup.new_tag("ul", class_="leaders")
+                    ch.wrap(nav_tag)
                     ch.wrap(ul_tag)
+
 
     # wrap the contents with ordered list
     def wrap_with_ordered_list1(self):
@@ -120,12 +126,35 @@ class KyHtmlOperations:
             if re.match(pattern2, ol.text):
                 ol.name = "li"
 
+    # wrap section nav with a tag
+    def section_nav1(self):
+        pattern = re.compile(r'^([^\s]+[^\D]+)')
+
+        for ch in self.soup.main.findAll():
+            if ch.name == "li":
+                if re.match(pattern, ch.text):
+                    chap_num = re.findall(r'^([^\.]+)', ch.text)
+                    sec_num = re.findall(r'^([^\s]+[^\D]+)', ch.text)
+
+                    new_list = []
+                    new_link = self.soup.new_tag('a')
+                    new_link.append(ch.text)
+
+                    new_link["href"] = f"#t01c0{chap_num[0]}s{sec_num[0]}."
+                    new_list.append(new_link)
+                    ch.contents = new_list
+
+                    ch.attrs = {}
+                    ch["id"] = f"t01c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}"
+
     # wrap it with div
     def main_div(self):
+        div_tag = self.soup.new_tag("div")
         for div in self.soup.main.findAll():
-            print(div)
-
-
+            if div.name != "h2":
+                div_tag.append(div)
+            else:
+                div.wrap(div_tag)
 
     # main method
     def start(self):
@@ -140,8 +169,9 @@ class KyHtmlOperations:
         self.section_nav()
         self.clear_junk()
         self.div_tag()
+        self.section_nav1()
         self.wrap_with_ordered_list1()
-        self.main_div()
+        # self.main_div()
 
         self.write_into_soup()
 
