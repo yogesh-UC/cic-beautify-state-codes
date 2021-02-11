@@ -27,7 +27,7 @@ class KyHtmlOperations:
 
     # set as  list items  and wrap it with ul tag
     def set_ul_tag(self):
-        ul_tag =self.soup.new_tag("ul", **{'class': 'leaders'})
+        ul_tag = self.soup.new_tag("ul", **{'class': 'leaders'})
         for nav in self.soup.findAll("p"):
             if nav != self.soup.find("p", class_="p3"):
                 if nav["class"] != ['p1']:
@@ -60,7 +60,7 @@ class KyHtmlOperations:
     # wrap the main content
     def main_tag(self):
         section_nav_tag = self.soup.new_tag("main")
-        tags = [tags.wrap(section_nav_tag) for tags in self.soup.find_all(['p', 'h2', 'h3'])]
+        [tags.wrap(section_nav_tag) for tags in self.soup.find_all(['p', 'h2', 'h3'])]
 
     # wrap section   with nav tag
     def section_nav(self):
@@ -69,9 +69,19 @@ class KyHtmlOperations:
 
     # wrap div
     def div_tag(self):
-        for chpter in self.soup.main.findAll():
-            if chpter.name == 'h2' and chpter.find_previous_sibling("p") == None:
-                chpter.wrap(self.soup.new_tag("div"))
+        [span.decompose() for span in self.soup.main.findAll() if span.name == "span"]
+        [ch.wrap(self.soup.new_tag("div")) for ch in self.soup.main.findAll() if ch.name == "h2"]
+        ul_tag = self.soup.new_tag("ul")
+        for ch in self.soup.main.findAll():
+            if ch.name == "li":
+                if ch.find_previous().name == "li":
+                    print(ch)
+                    ul_tag.append(ch)
+                else:
+                    ul_tag = self.soup.new_tag("ul")
+                    ch.wrap(ul_tag)
+
+
 
     # main class
     def start(self):
@@ -84,8 +94,9 @@ class KyHtmlOperations:
         self.chapter_nav()
         self.main_tag()
         self.section_nav()
-        self.write_into_soup()
         self.div_tag()
+
+        self.write_into_soup()
 
     # create a soup
     def create_soup(self):
@@ -100,5 +111,3 @@ class KyHtmlOperations:
 
 KyHtmlOperations_obj = KyHtmlOperations()  # create a class object
 KyHtmlOperations_obj.start()
-
-
