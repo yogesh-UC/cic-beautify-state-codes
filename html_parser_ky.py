@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import re
 
 
+# KY 2
 class KyHtmlOperations:
     # assign id to chapter header
     def chapter_header_id(self):
@@ -11,13 +12,37 @@ class KyHtmlOperations:
                 chap_head['id'] = f"t01c0{chap_nums[0]}"
                 chap_head.name = "h2"
 
-    # assign id to Section header
+    # # assign id to Section header
     def section_header_id(self):
         for sec_head in self.soup.findAll("p", class_="p4"):
             chap_num = re.findall(r'^([^\.]+)', sec_head.text)
             sec_num = re.findall(r'^([^\s]+)', sec_head.text)
             sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}"
             sec_head.name = "h3"
+
+    # assign id to Section header
+    # def section_header_id(self):
+    #     [span.decompose() for span in self.soup.findAll() if span.name == "span"]
+    #     [tag.unwrap() for tag in self.soup.findAll("b")]
+    #     [junk.decompose() for junk in self.soup.findAll("p", class_="p5")]
+    #     for sec_head in self.soup.findAll("p", class_="p4"):
+    #         current = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
+    #         next1 = re.findall(r'^([^\s]+[^\D]+)', sec_head.find_next("p", class_="p4").text)
+    #
+    #         print("current: " + current[0])
+    #         print("next:    " + next1[0])
+
+    # chap_num = re.findall(r'^([^\.]+)', sec_head.text)
+    # sec_num = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
+    #
+    # if current != [] and next1 != []:
+    #
+    #     if current[0] == next1[0]:
+    #         sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}"
+    #         sec_head.name = "h3"
+    #     else:
+    #         sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}1"
+    #         sec_head.name = "h3"
 
     # replace with appropriate tag
     def set_appropriate_tag(self):
@@ -62,7 +87,7 @@ class KyHtmlOperations:
         section_nav_tag = self.soup.new_tag("main")
         [tags.wrap(section_nav_tag) for tags in self.soup.find_all(['p', 'h2', 'h3'])]
 
-    # wrap section   with nav tag
+    # wrap section   with li tag
     def section_nav(self):
         for tag in self.soup.findAll("p", class_="p2"):
             tag.name = "li"
@@ -90,7 +115,6 @@ class KyHtmlOperations:
                     ch.wrap(nav_tag)
                     ch.wrap(ul_tag)
 
-
     # wrap the contents with ordered list
     def wrap_with_ordered_list1(self):
         for tag in self.soup.findAll("p", class_="p8"):
@@ -99,7 +123,7 @@ class KyHtmlOperations:
         pattern2 = re.compile(r'^[(]\D[)]')
         pattern = re.compile(r'^(\d+)|^([(]\d+[)])')
         ol_tag = self.soup.new_tag("ol")
-        ol_tag2 = self.soup.new_tag("ol")
+        ol_tag2 = self.soup.new_tag("ol", type="a")
         for tag in self.soup.findAll("p", class_="p6"):
             if re.match(pattern, tag.text):
                 tag.name = "li"
@@ -118,7 +142,7 @@ class KyHtmlOperations:
                     if tag.find_previous().name == "p":
                         ol_tag2.append(tag)
                     elif tag.find_previous().name == "li":
-                        ol_tag2 = self.soup.new_tag("ol")
+                        ol_tag2 = self.soup.new_tag("ol", type="a")
                         tag.wrap(ol_tag2)
                         ol_tag.append(ol_tag2)
 
@@ -126,39 +150,151 @@ class KyHtmlOperations:
             if re.match(pattern2, ol.text):
                 ol.name = "li"
 
+    # wrap the contents with ordered list(2)
+    def wrap_with_ordered_list2(self):
+        [br.decompose() for br in self.soup.findAll("p", class_="p7")]
+        for tag in self.soup.findAll("p", class_="p8"):
+            tag.name = "h4"
+
+        pattern4 = re.compile(r'^([(]\d+[)])')  # (1)
+        pattern3 = re.compile(r'^(\d+)')  # 1.
+        pattern2 = re.compile(r'^[(]\D[)]')  # (a)
+        pattern1 = re.compile(r'^(\d+)|^([(]\d+[)])')  # (1) 1.
+        pattern = re.compile(r'^(\d+)|^([(]\d+[)]|^[(]\D[)])')
+        pattern5 = re.compile(r'^([(]\d+[)]) [(]\D[)]')
+
+        ol_tag = self.soup.new_tag("ol")
+        ol_tag2 = self.soup.new_tag("ol")
+        for tag in self.soup.findAll("p", class_="p6"):
+            if re.match(pattern, tag.text):
+                tag.name = "li"
+            else:
+                tag.name = "h5"
+
+        ol_tag2 = self.soup.new_tag("ol")
+        ol_tag = self.soup.new_tag("ol")
+        for tag in self.soup.findAll("li", class_="p6"):
+            if tag.find_previous().name == "li":
+                if re.match(pattern4, tag.text):
+                    if re.match(pattern4, tag.find_previous().text):
+                        ol_tag.append(tag)
+
+                    else:
+                        ol_tag = self.soup.new_tag("ol")
+                        tag.wrap(ol_tag)
+
+                # elif re.match(pattern5, tag.text):
+                #     ol_tag2 = self.soup.new_tag("ol")
+                #     tag.wrap(ol_tag2)
+                #     #ol_tag.append(ol_tag2)
+                # elif re.match(pattern2, tag.text):
+                #     ol_tag2.append(tag)
+
+
+
+
+
+
+            elif tag.find_previous().name == "h3" or tag.find_previous().name == "h5" or tag.find_previous().name == "h4":
+                ol_tag = self.soup.new_tag("ol")
+                tag.wrap(ol_tag)
+
+        # i=0
+        # for tag in self.soup.findAll("li", class_="p6"):
+        #     current =
+        #     if re.match(f"^([(]{i+1}[)])", tag.text):
+        #         print(tag)
+
+        # title_header = soup.find(name="p", text=re.compile("^(TITLE)"))
+
+    # # wrap section nav with a tag
+    # def section_nav1(self):
+    #     pattern = re.compile(r'^([^\s]+[^\D]+)')
+    #
+    #     for ch in self.soup.main.findAll():
+    #         if ch.name == "li":
+    #             if re.match(pattern, ch.text):
+    #                 chap_num = re.findall(r'^([^\.]+)', ch.text)
+    #                 sec_num = re.findall(r'^([^\s]+[^\D]+)', ch.text)
+    #
+    #                 new_list = []
+    #                 new_link = self.soup.new_tag('a')
+    #                 new_link.append(ch.text)
+    #
+    #                 new_link["href"] = f"#t01c0{chap_num[0]}s{sec_num[0]}."
+    #                 new_list.append(new_link)
+    #                 ch.contents = new_list
+    #
+    #                 ch.attrs = {}
+    #                 ch["id"] = f"t01c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}"
+
     # wrap section nav with a tag
-    def section_nav1(self):
+
+    def section_nav2(self):
         pattern = re.compile(r'^([^\s]+[^\D]+)')
 
         for ch in self.soup.main.findAll():
             if ch.name == "li":
                 if re.match(pattern, ch.text):
+                    # print(ch.find_next().text)
+
+                    current_text = ch.text
+                    next_text = ch.find_next().text
+
+                    current = re.findall(r'^([^\s]+[^\D]+)', ch.text)
+                    next1 = re.findall(r'^([^\s]+[^\D]+)', ch.find_next().text)
+
                     chap_num = re.findall(r'^([^\.]+)', ch.text)
                     sec_num = re.findall(r'^([^\s]+[^\D]+)', ch.text)
 
-                    new_list = []
-                    new_link = self.soup.new_tag('a')
-                    new_link.append(ch.text)
+                    if current != [] and next1 != []:
 
-                    new_link["href"] = f"#t01c0{chap_num[0]}s{sec_num[0]}."
-                    new_list.append(new_link)
-                    ch.contents = new_list
+                        if current[0] == next1[0]:
 
-                    ch.attrs = {}
-                    ch["id"] = f"t01c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}"
+                            new_list = []
+                            new_link = self.soup.new_tag('a')
+                            new_link.append(ch.text)
 
-    # wrap it with div
-    def main_div(self):
-        div_tag = self.soup.new_tag("div")
-        for div in self.soup.main.findAll():
-            if div.name != "h2":
-                div_tag.append(div)
-            else:
-                div.wrap(div_tag)
+                            new_link["href"] = f"#t01c0{chap_num[0]}s{sec_num[0]}.1"
+                            new_list.append(new_link)
+                            ch.contents = new_list
+
+                            ch.attrs = {}
+                            ch["id"] = f"t01c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}.1"
+
+                        else:
+                            new_list = []
+                            new_link = self.soup.new_tag('a')
+                            new_link.append(ch.text)
+
+                            new_link["href"] = f"#t01c0{chap_num[0]}s{sec_num[0]}"
+                            new_list.append(new_link)
+                            ch.contents = new_list
+
+                            ch.attrs = {}
+                            ch["id"] = f"t01c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}"
+
+    # assign id
+    def assign_id(self):
+        [span.decompose() for span in self.soup.findAll() if span.name == "span"]
+        [tag.unwrap() for tag in self.soup.findAll("b")]
+        [junk.decompose() for junk in self.soup.findAll("p", class_="p5")]
+
+        pattern = re.compile(r'^([^\s]+[^\D]+)')
+        pattern1 = re.compile(r'\D')
+
+        # for sec_head in self.soup.findAll("p", class_="p4"):
+        #     print(sec_head)
+        # chap_num = re.findall(r'^([^\.]+)', sec_head.text)
+        # sec_num = re.findall(r'^([^\s]+)', sec_head.text)
+        # sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}"
+        # sec_head.name = "h3"
 
     # main method
     def start(self):
         self.create_soup()
+
+        # self.assign_id()
         self.set_ul_tag()
         self.chapter_header_id()
         self.section_header_id()
@@ -169,20 +305,20 @@ class KyHtmlOperations:
         self.section_nav()
         self.clear_junk()
         self.div_tag()
-        self.section_nav1()
-        self.wrap_with_ordered_list1()
-        # self.main_div()
+        # self.section_nav1()
+        self.section_nav2()
+        self.wrap_with_ordered_list2()
 
         self.write_into_soup()
 
     # create a soup
     def create_soup(self):
-        with open("/home/mis/gov.ky.krs.title.01.html") as fp:
+        with open("/home/mis/gov.ky.krs.title.02.html") as fp:
             self.soup = BeautifulSoup(fp, "lxml")
 
     # write into a soup
     def write_into_soup(self):
-        with open("ky.html", "w") as file:
+        with open("ky2.html", "w") as file:
             file.write(str(self.soup))
 
 
