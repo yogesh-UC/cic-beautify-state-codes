@@ -21,28 +21,28 @@ class KyHtmlOperations:
             sec_head.name = "h3"
 
     # assign id to Section header
-    # def section_header_id(self):
-    #     [span.decompose() for span in self.soup.findAll() if span.name == "span"]
-    #     [tag.unwrap() for tag in self.soup.findAll("b")]
-    #     [junk.decompose() for junk in self.soup.findAll("p", class_="p5")]
-    #     for sec_head in self.soup.findAll("p", class_="p4"):
-    #         current = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
-    #         next1 = re.findall(r'^([^\s]+[^\D]+)', sec_head.find_next("p", class_="p4").text)
-    #
-    #         print("current: " + current[0])
-    #         print("next:    " + next1[0])
+    def section_header_id(self):
+        [span.decompose() for span in self.soup.findAll() if span.name == "span"]
+        [tag.unwrap() for tag in self.soup.findAll("b")]
+        [junk.decompose() for junk in self.soup.findAll("p", class_="p5")]
+        for sec_head in self.soup.findAll("p", class_="p4"):
+            current = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
+            next1 = re.findall(r'^([^\s]+[^\D]+)', sec_head.find_next("p", class_="p4").text)
 
-    # chap_num = re.findall(r'^([^\.]+)', sec_head.text)
-    # sec_num = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
-    #
-    # if current != [] and next1 != []:
-    #
-    #     if current[0] == next1[0]:
-    #         sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}"
-    #         sec_head.name = "h3"
-    #     else:
-    #         sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}1"
-    #         sec_head.name = "h3"
+            print("current: " + current[0])
+            print("next:    " + next1[0])
+
+        chap_num = re.findall(r'^([^\.]+)', sec_head.text)
+        sec_num = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
+
+        if current != [] and next1 != []:
+
+            if current[0] == next1[0]:
+                sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}"
+                sec_head.name = "h3"
+            else:
+                sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}1"
+                sec_head.name = "h3"
 
     # replace with appropriate tag
     def set_appropriate_tag(self):
@@ -93,10 +93,10 @@ class KyHtmlOperations:
             tag.name = "li"
 
     # clear junk
-    def clear_junk(self):
-        [span.decompose() for span in self.soup.main.findAll() if span.name == "span"]
-        [junk.decompose() for junk in self.soup.main.findAll("p", class_="p5")]
-        [tag.unwrap() for tag in self.soup.findAll("b")]
+    # def clear_junk(self):
+    #     [span.decompose() for span in self.soup.main.findAll() if span.name == "span"]
+    #     [junk.decompose() for junk in self.soup.main.findAll("p", class_="p5")]
+    #     [tag.unwrap() for tag in self.soup.findAll("b")]
 
     # wrap section nav with ul
     def div_tag(self):
@@ -303,7 +303,7 @@ class KyHtmlOperations:
         self.chapter_nav()
         self.main_tag()
         self.section_nav()
-        self.clear_junk()
+        # self.clear_junk()
         self.div_tag()
         # self.section_nav1()
         self.section_nav2()
