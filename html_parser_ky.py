@@ -21,28 +21,28 @@ class KyHtmlOperations:
             sec_head.name = "h3"
 
     # assign id to Section header
-    def section_header_id(self):
-        [span.decompose() for span in self.soup.findAll() if span.name == "span"]
-        [tag.unwrap() for tag in self.soup.findAll("b")]
-        [junk.decompose() for junk in self.soup.findAll("p", class_="p5")]
-        for sec_head in self.soup.findAll("p", class_="p4"):
-            current = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
-            next1 = re.findall(r'^([^\s]+[^\D]+)', sec_head.find_next("p", class_="p4").text)
+    # def section_header_id(self):
+    #     [span.decompose() for span in self.soup.findAll() if span.name == "span"]
+    #     [tag.unwrap() for tag in self.soup.findAll("b")]
+    #     [junk.decompose() for junk in self.soup.findAll("p", class_="p5")]
+    #     for sec_head in self.soup.findAll("p", class_="p4"):
+    #         current = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
+    #         next1 = re.findall(r'^([^\s]+[^\D]+)', sec_head.find_next("p", class_="p4").text)
+    #
+    #         print("current: " + current[0])
+    #         print("next:    " + next1[0])
 
-            print("current: " + current[0])
-            print("next:    " + next1[0])
-
-        chap_num = re.findall(r'^([^\.]+)', sec_head.text)
-        sec_num = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
-
-        if current != [] and next1 != []:
-
-            if current[0] == next1[0]:
-                sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}"
-                sec_head.name = "h3"
-            else:
-                sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}1"
-                sec_head.name = "h3"
+    # chap_num = re.findall(r'^([^\.]+)', sec_head.text)
+    # sec_num = re.findall(r'^([^\s]+[^\D]+)', sec_head.text)
+    #
+    # if current != [] and next1 != []:
+    #
+    #     if current[0] == next1[0]:
+    #         sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}"
+    #         sec_head.name = "h3"
+    #     else:
+    #         sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}1"
+    #         sec_head.name = "h3"
 
     # replace with appropriate tag
     def set_appropriate_tag(self):
@@ -93,10 +93,10 @@ class KyHtmlOperations:
             tag.name = "li"
 
     # clear junk
-    # def clear_junk(self):
-    #     [span.decompose() for span in self.soup.main.findAll() if span.name == "span"]
-    #     [junk.decompose() for junk in self.soup.main.findAll("p", class_="p5")]
-    #     [tag.unwrap() for tag in self.soup.findAll("b")]
+    def clear_junk(self):
+        [span.decompose() for span in self.soup.main.findAll() if span.name == "span"]
+        [junk.decompose() for junk in self.soup.main.findAll("p", class_="p5")]
+        [tag.unwrap() for tag in self.soup.findAll("b")]
 
     # wrap section nav with ul
     def div_tag(self):
@@ -156,12 +156,7 @@ class KyHtmlOperations:
         for tag in self.soup.findAll("p", class_="p8"):
             tag.name = "h4"
 
-        pattern4 = re.compile(r'^([(]\d+[)])')  # (1)
-        pattern3 = re.compile(r'^(\d+)')  # 1.
-        pattern2 = re.compile(r'^[(]\D[)]')  # (a)
-        pattern1 = re.compile(r'^(\d+)|^([(]\d+[)])')  # (1) 1.
         pattern = re.compile(r'^(\d+)|^([(]\d+[)]|^[(]\D[)])')
-        pattern5 = re.compile(r'^([(]\d+[)]) [(]\D[)]')
 
         ol_tag = self.soup.new_tag("ol")
         ol_tag2 = self.soup.new_tag("ol")
@@ -174,59 +169,46 @@ class KyHtmlOperations:
         ol_tag2 = self.soup.new_tag("ol")
         ol_tag = self.soup.new_tag("ol")
         for tag in self.soup.findAll("li", class_="p6"):
-            if tag.find_previous().name == "li":
-                if re.match(pattern4, tag.text):
-                    if re.match(pattern4, tag.find_previous().text):
-                        ol_tag.append(tag)
 
-                    else:
-                        ol_tag = self.soup.new_tag("ol")
-                        tag.wrap(ol_tag)
+            # if tag.find_previous().name == "h3" or tag.find_previous().name == "h5":
+            #     first_list = self.soup.find("li", class_="p6")
+            #     if re.match(r'\(\d+\)', first_list.text):
+            #         pattern1 = re.findall(r'^\(\d+\)', first_list.text)
+            #         index = re.findall(r'\d+', str(pattern1))
+            #         strings = [str(integer) for integer in index]
+            #         a_string = "".join(strings)
+            #         a_int = int(a_string)
+            #         print(a_int)
 
-                # elif re.match(pattern5, tag.text):
-                #     ol_tag2 = self.soup.new_tag("ol")
-                #     tag.wrap(ol_tag2)
-                #     #ol_tag.append(ol_tag2)
-                # elif re.match(pattern2, tag.text):
-                #     ol_tag2.append(tag)
+            Num_bracket_pattern = re.compile(r'^\(\d+\)')
+            alpha_pattern = re.compile(r'^\(\D+\)')
+            num_pattern = re.compile(r'^\d+')
+            alphanum_pattern = re.compile(r'^\(\d+\)\s\(\D+\)')
+
+            if re.match(Num_bracket_pattern, tag.text):
+                pattern1 = re.findall(r'^\(\d+\)', tag.text)
+                index = re.findall(r'\d+', str(pattern1))
+                strings = [str(integer) for integer in index]
+                a_string = "".join(strings)
+                a_int = int(a_string)
+
+                if a_int > 1:
+                    ol_tag.append(tag)
+                else:
+                    ol_tag = self.soup.new_tag("ol")
+                    tag.wrap(ol_tag)
 
 
+            elif re.match(alpha_pattern, tag.text):
+                if re.match(alpha_pattern, tag.find_previous().text):
+                    ol_tag2.append(tag)
 
-
-
-
-            elif tag.find_previous().name == "h3" or tag.find_previous().name == "h5" or tag.find_previous().name == "h4":
-                ol_tag = self.soup.new_tag("ol")
-                tag.wrap(ol_tag)
-
-        # i=0
-        # for tag in self.soup.findAll("li", class_="p6"):
-        #     current =
-        #     if re.match(f"^([(]{i+1}[)])", tag.text):
-        #         print(tag)
-
-        # title_header = soup.find(name="p", text=re.compile("^(TITLE)"))
-
-    # # wrap section nav with a tag
-    # def section_nav1(self):
-    #     pattern = re.compile(r'^([^\s]+[^\D]+)')
-    #
-    #     for ch in self.soup.main.findAll():
-    #         if ch.name == "li":
-    #             if re.match(pattern, ch.text):
-    #                 chap_num = re.findall(r'^([^\.]+)', ch.text)
-    #                 sec_num = re.findall(r'^([^\s]+[^\D]+)', ch.text)
-    #
-    #                 new_list = []
-    #                 new_link = self.soup.new_tag('a')
-    #                 new_link.append(ch.text)
-    #
-    #                 new_link["href"] = f"#t01c0{chap_num[0]}s{sec_num[0]}."
-    #                 new_list.append(new_link)
-    #                 ch.contents = new_list
-    #
-    #                 ch.attrs = {}
-    #                 ch["id"] = f"t01c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}"
+                elif re.match(Num_bracket_pattern, tag.find_previous().text):
+                    ol_tag2 = self.soup.new_tag("ol")
+                    new_list = []
+                    ol_tag2.append(tag.text)
+                    new_list.append(ol_tag2)
+                    tag.contents = new_list
 
     # wrap section nav with a tag
 
@@ -274,22 +256,6 @@ class KyHtmlOperations:
                             ch.attrs = {}
                             ch["id"] = f"t01c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}"
 
-    # assign id
-    def assign_id(self):
-        [span.decompose() for span in self.soup.findAll() if span.name == "span"]
-        [tag.unwrap() for tag in self.soup.findAll("b")]
-        [junk.decompose() for junk in self.soup.findAll("p", class_="p5")]
-
-        pattern = re.compile(r'^([^\s]+[^\D]+)')
-        pattern1 = re.compile(r'\D')
-
-        # for sec_head in self.soup.findAll("p", class_="p4"):
-        #     print(sec_head)
-        # chap_num = re.findall(r'^([^\.]+)', sec_head.text)
-        # sec_num = re.findall(r'^([^\s]+)', sec_head.text)
-        # sec_head['id'] = f"t01c0{chap_num[0]}s{sec_num[0]}"
-        # sec_head.name = "h3"
-
     # main method
     def start(self):
         self.create_soup()
@@ -303,7 +269,7 @@ class KyHtmlOperations:
         self.chapter_nav()
         self.main_tag()
         self.section_nav()
-        # self.clear_junk()
+        self.clear_junk()
         self.div_tag()
         # self.section_nav1()
         self.section_nav2()
