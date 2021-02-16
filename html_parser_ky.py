@@ -12,7 +12,7 @@ class KyHtmlOperations:
                 chap_head['id'] = f"t01c0{chap_nums[0]}"
                 chap_head.name = "h2"
 
-    # # assign id to Section header
+    # assign id to Section header
     def section_header_id(self):
         for sec_head in self.soup.findAll("p", class_="p4"):
             chap_num = re.findall(r'^([^\.]+)', sec_head.text)
@@ -144,8 +144,8 @@ class KyHtmlOperations:
 
         for tag in self.soup.findAll("li", class_="p6"):
 
+            #(1)......
             if re.match(Num_bracket_pattern, tag.text):
-
                 pattern1 = re.findall(r'^\(\d+\)', tag.text)
                 index = re.findall(r'\d+', str(pattern1))
                 strings = [str(integer) for integer in index]
@@ -153,38 +153,19 @@ class KyHtmlOperations:
                 a_int = int(a_string)
 
                 if a_int > 1:
-                    #
-                    # content = re.sub(r'^\(\d+\)', "", string=tag.text)
-                    # tag.contents = []
-                    # tag.append(content)
-
                     ol_tag.append(tag)
                 elif a_int == 1:
-
-                    # content = re.sub(r'^\(\d+\)', "", string=tag.text)
-                    # tag.contents = []
-                    # tag.append(content)
-
                     ol_tag = self.soup.new_tag("ol")
                     tag.wrap(ol_tag)
-
+            #1.......
             if re.match(num_pattern, tag.text) and tag.find_previous().name == "h4":
                 ol_tag = self.soup.new_tag("ol")
                 tag.wrap(ol_tag)
 
-                # content = re.sub(r'^\d+\.', "", string=tag.text)
-                # tag.contents = []
-                # tag.append(content)
-
-
             else:
-
-                # content = re.sub(r'^\d+\.', "", string=tag.text)
-                # tag.contents = []
-                # tag.append(content)
-
                 ol_tag.append(tag)
 
+            #(a).......
             pattern_new = re.compile(r'^\(a+\)')
             if re.match(alpha_pattern, tag.text):
                 if re.match(pattern_new, tag.text):
@@ -194,25 +175,11 @@ class KyHtmlOperations:
                     ol_tag.append(ol_tag2)
                     tag.find_previous("li").append(ol_tag2)
 
-                    # content = re.sub(r'^\(\D+\)', "", string=tag.text)
-                    # tag.contents = []
-                    # tag.append(content)
-
                 else:
-                    # content = re.sub(r'^\(\D+\)', "", string=tag.text)
-                    # tag.contents = []
-                    # tag.append(content)
-
                     ol_tag2.append(tag)
 
+            #(1)(a)............
             if re.match(numAlpha_pattern, tag.text):
-
-                # print(tag)
-                # print(re.sub(r'^\(\d+\)\s\(\D+\)', "", string=tag.text))
-                # content = re.sub(r'^\(\d+\)\s\(\D+\)', "", string=tag.text)
-                # tag.contents = []
-                # tag.append(content)
-
                 ol_tag2 = self.soup.new_tag("ol", type="a")
 
                 li_tag = self.soup.new_tag("li")
@@ -221,18 +188,7 @@ class KyHtmlOperations:
                 tag.contents = []
                 tag.append(ol_tag2)
 
-                # content = re.sub(r'^\(\d+\)\s\(\D+\)', "", string=tag.text)
-                # tag.contents = []
-                # tag.append(content)
-
-
-
             elif re.match(alpha_pattern, tag.text):
-
-                # content = re.sub(r'^\(\d+\)\s\(\D+\)', "", string=tag.text)
-                # tag.contents = []
-                # tag.append(content)
-
                 if re.match(Num_bracket_pattern, tag.find_previous().text):
                     ol_tag2.append(tag)
                 elif re.match(alpha_pattern, tag.find_previous().text):
@@ -240,10 +196,8 @@ class KyHtmlOperations:
                 elif re.match(num_pattern, tag.find_previous().text):
                     ol_tag2.append(tag)
 
+            #(a)1. .............
             if re.match(alphanum_pattern, tag.text):
-                content = re.sub(r'^\(\D+\)\s(\d)+', "", string=tag.text)
-                tag.contents = []
-                tag.append(content)
 
                 ol_tag3 = self.soup.new_tag("ol")
                 li_tag = self.soup.new_tag("li")
@@ -255,11 +209,12 @@ class KyHtmlOperations:
 
 
             elif re.match(num_pattern, tag.text) and re.match(alphanum_pattern, tag.find_previous().text):
-                # content = re.sub(r'^\(\D+\)\s(\d)+', "", string=tag.text)
-                # tag.contents = []
-                # tag.append(content)
-
                 ol_tag3.append(tag)
+
+
+
+
+
 
     # wrap section nav with a tag
 
