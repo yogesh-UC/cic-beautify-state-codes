@@ -6,9 +6,11 @@ import re
 class KyHtmlOperations:
     # extract soup element
     def extract_soup_element(self, string):
-            a = {'', 'head2': '^CHAPTER'}
-            chap_element = self.soup.find(lambda tag: tag.name == 'p' and re.search('^CHAPTER', tag.get_text().strip()) and tag.attrs["class"][0] != "p2")
-            print(chap_element)
+            a = {'ul': '^CHAPTER', 'head2': '^CHAPTER', 'title': '^(TITLE)'}
+            for key, value in a.items():
+                tag = self.soup.find(lambda tag: tag.name == 'p' and re.search(a.get(key), tag.get_text().strip()) and tag.attrs["class"][0] not in a.values())
+                a[key] = tag.get('class')[0]
+            print(a)
 
 
 
