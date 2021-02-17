@@ -211,10 +211,53 @@ class KyHtmlOperations:
             elif re.match(num_pattern, tag.text) and re.match(alphanum_pattern, tag.find_previous().text):
                 ol_tag3.append(tag)
 
+        # assign id to chapter header
 
+    def chapter_header_id(self):
+        for chap_head in self.soup.findAll("p", class_=self.class_regex["head2"]):
+            if re.match("(CHAPTER)", chap_head.text):
+                chap_head.name = "h2"
+                chap_split = chap_head.text.split(' ')
+                chap_nums = chap_split[1]
+                chap_num = chap_nums.zfill(2)
+                chap_head['id'] = f"t{self.title_id}c{chap_num}"
+            else:
+                chap_head.name = "h3"
+                chap_head["id"] = chap_head.text.replace(" ", "").lower()
 
+        # assign id to section headers
+        def sec_headers(self):
+            for tag in self.soup.find_all(name="p", class_=self.class_regex["sec_head"]):
+                current = re.findall(r'^([^\s]+[^\D]+)', tag.text)
+                next1 = tag.find_next(name="p", class_=self.class_regex["sec_head"])
 
+                if next1 is not None:
+                    next2 = re.findall(r'^([^\s]+[^\D]+)', next1.text)
 
+                chap_num = re.findall(r'^([^\.]+)', tag.text)
+                sec_num = re.findall(r'^([^\s]+[^\D]+)', tag.text)
+
+                if current[0] == next2[0]:
+                    sub_sec = tag.text.replace(" ", "").lower()
+                    if chap_num[0].isdigit():
+                        if int(chap_num[0]) <= 9:
+                            tag["id"] = f"t{self.title_id}c0{chap_num[0]}s{sub_sec}"
+
+                        else:
+                            tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sub_sec}"
+                    else:
+                        tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sub_sec}"
+
+                else:
+                    if chap_num[0].isdigit():
+                        if int(chap_num[0]) <= 9:
+                            tag["id"] = f"t{self.title_id}c0{chap_num[0]}s{sec_num[0]}"
+                        else:
+                            tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sec_num[0]}"
+                    else:
+                        tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sec_num[0]}"
+
+                tag.name = "h3"
 
     # wrap section nav with a tag
 
@@ -257,6 +300,83 @@ class KyHtmlOperations:
 
                             ch.attrs = {}
                             ch["id"] = f"t01c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}"
+
+        # assign id to the li
+
+    def chap_sec_nav(self):
+        pattern_sec = re.compile(r'^([^\s]+[^\D]+)')
+
+        for tag in self.soup.find_all("li"):
+            if re.match(r'^([^\s]+[^\D]+)|^(CHAPTER)', tag.get_text().strip()):
+                if re.match(pattern_sec, tag.text):
+                    current = re.findall(r'^([^\s]+[^\D]+)', tag.text)
+                    next1 = re.findall(r'^([^\s]+[^\D]+)', tag.find_next().text)
+
+                    chap_num = re.findall(r'^([^\.]+)', tag.text)
+                    sec_num = re.findall(r'^([^\s]+[^\D]+)', tag.text)
+
+                    if current != [] and next1 != []:
+                        if current[0] == next1[0]:
+                            sub_sec = tag.text.replace(" ", "").lower()
+                            new_list = []
+                            new_link = self.soup.new_tag('a')
+                            new_link.append(tag.text)
+                            new_link["href"] = f"#t{self.title_id}c0{chap_num[0]}s{sub_sec}"
+                            new_list.append(new_link)
+                            tag.contents = new_list
+                            tag["id"] = f"t{self.title_id}c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}.{sub_sec}"
+                        else:
+                            new_list = []
+                            new_link = self.soup.new_tag('a')
+                            new_link.append(tag.text)
+
+                            new_link["href"] = f"#t{self.title_id}c0{chap_num[0]}s{sec_num[0]}"
+                            new_list.append(new_link)
+                            tag.contents = new_list
+
+                            # tag.attrs = {}
+                            tag["id"] = f"t{self.title_id}c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}"
+                    else:
+                        new_list = []
+                        new_link = self.soup.new_tag('a')
+                        new_link.append(tag.text)
+
+                        new_link["href"] = f"#t{self.title_id}c0{chap_num[0]}s{sec_num[0]}"
+                        new_list.append(new_link)
+                        tag.contents = new_list
+
+                        # tag.attrs = {}
+                        tag["id"] = f"t{self.title_id}c0{chap_num[0]}s{sec_num[0]}.snav0{chap_num[0]}"
+
+                else:
+                    chap_nav_nums = re.findall(r'\d', tag.text)
+                    chap_split = tag.text.split(' ')
+                    chap_nums = chap_split[1]
+
+                    if chap_nav_nums:
+                        new_list = []
+                        new_link = self.soup.new_tag('a')
+                        new_link.append(tag.text)
+                        if chap_nums.isdigit():
+                            if int(chap_nums) <= 9:
+                                new_link["href"] = f"#t{self.title_id}c0{chap_nums}"
+                            else:
+                                new_link["href"] = f"#t{self.title_id}c{chap_nums}"
+                        else:
+                            new_link["href"] = f"#t{self.title_id}c{chap_nums}"
+
+                        new_list.append(new_link)
+                        tag.contents = new_list
+
+            else:
+                sec_id = tag.text.replace(" ", "").lower()
+
+                new_list = []
+                new_link = self.soup.new_tag('a')
+                new_link.append(tag.text)
+                new_link["href"] = f"#{sec_id}"
+                new_list.append(new_link)
+                tag.contents = new_list
 
     # main method
     def start(self):
