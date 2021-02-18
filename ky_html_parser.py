@@ -2,119 +2,123 @@ from bs4 import BeautifulSoup
 import re
 
 class KyHtmlOperations:
-    # # create a soup
-    # def create_soup(self):
-    #     with open("/home/mis/gov.ky.krs.title.01.html") as fp:
-    #         soup = BeautifulSoup(fp, "lxml")
-    #         return soup
 
-    # soup initialization
-    def __init__(self,soup):
-        self.soup = soup
+    def __init__(self):
+        self.class_regex = {'ul': '^CHAPTER', 'head2': '^CHAPTER', 'title': '^(TITLE)', 'sec_head': r'^([^\s]+[^\D]+)',
+                            'junk': '^(Text)', 'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])'}
+        self.title_id = None
+        self.soup = None
 
-    #def start_function(self):
+    # extract class names
+    def get_class_names(self):
+        for key, value in self.class_regex.items():
+            tag_class = self.soup.find(
+                lambda tag: tag.name == 'p' and re.search(self.class_regex.get(key), tag.get_text().strip()) and
+                            tag.attrs["class"][0] not in self.class_regex.values())
+            self.class_regex[key] = tag_class.get('class')[0]
+        # print(self.class_regex)
 
-
-
-    # assign id to chapter header
-    def chapter_header_id(self, soup):
-        all_chapter_header = soup.findAll("p", class_="p3")
-        for chap_head in all_chapter_header:
-            chap_nums = re.findall(r'\d', chap_head.text)
-            chap_head['id'] = f"t01c0{chap_nums}"
-            chap_head.name = "h2"
-
-    # assign id to Section header
-    def section_header_id(self, soup):
-        all_section_header = soup.findAll("p", class_="p4")
-        for sec_head in all_section_header:
-            chap_num = re.findall(r'^([^\.]+)', sec_head.text)
-            chap_id = "".join(chap_num)
-            sec_num = re.findall(r'^([^\s]+)', sec_head.text)
-            sec_id = "".join(sec_num)
-            sec_head['id'] = f"t01c0{chap_id}s{sec_id}"
-            sec_head.name = "h3"
+    # clear junk
+    def clear_junk(self):
+        [span.unwrap() if span["class"] == ['Apple-converted-space'] else span.decompose() for span in
+         self.soup.findAll("span")]
+        [text_junk.decompose() for text_junk in self.soup.find_all("p", class_=self.class_regex["junk"])]
+        for b_tag in self.soup.findAll("b"):
+            b_tag.name = "span"
+            b_tag["class"] = "boldspan"
 
 
-    # replace with appropriate tag
-    def set_appropriate_tag(self, soup):
-        title_header = soup.find(name="p", text=re.compile("^(TITLE)"))
-        title_header.name = "h1"
-        title_header.wrap(soup.new_tag("nav"))
 
-    # set as unordered list and wrap it with anchor tag
-    def set_ul_tag(self, soup):
-        ul_tag = soup.new_tag("ul", **{'class': 'leaders'})
-        chapter_nav = soup.findAll("p")
-        chapter_header_break = soup.find("p", class_="p3")
-        for nav in chapter_nav:
-            if nav != chapter_header_break:
-                if nav["class"] != ['p1']:
-                    nav.wrap(ul_tag)
-                    nav.name = "li"
+    # replace title tag to "h1" and wrap it with "nav" tag
+    def set_appropriate_tag_name_and_id(self):
+        for header_tag in self.soup.body.find_all():
+            if header_tag.get("class") == [self.class_regex["title"]]:
+                header_tag.name = "h1"
+                self.title_id = re.search(r'^(?:[^ ]*\ ){1}([^ ]*)', header_tag.text.strip()).group(1)
+            elif header_tag.get("class") == [self.class_regex["head2"]]:
+                if re.search("^(CHAPTER)", header_tag.text):
+                    chap_nums = re.search(r'^(?:[^ ]*\ ){1}([^ ]*)', header_tag.text.strip()).group(1).zfill(2)
+                    header_tag.name = "h2"
+                    header_tag['id'] = f"t{self.title_id}c{chap_nums}"
+                else:
+                    header_tag.name = "h3"
+                    header_id = re.sub(r'\s+', '', header_tag.get_text()).lower()
+                    header_tag["id"] = f"t{self.title_id}c{chap_nums}{header_id}"
+
+            elif header_tag.get("class") == [self.class_regex["sec_head"]]:
+                header_tag.name = "h3"
+
+                chap_num = re.search(r'^([^\.]+)', header_tag.text).group().zfill(2)
+                sec_num = re.search(r'^(\d+\.\d+)', header_tag.text).group(1).zfill(2)
+                header_pattern = re.search(r'^(\d+\.\d+)', header_tag.text.strip()).group()
+                if header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"]) is not None:
+                    prev_tag = header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"])
+                    if header_pattern in prev_tag.text:
+                        count = 0
+                        prev_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
+                        header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
+                    else:
+                        header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
+
+            elif header_tag.get("class") == [self.class_regex["ul"]]:
+                header_tag.name = "li"
+
+    # wrap list items with ul tag
+    def create_ul_tag(self):
+        ul_tag = self.soup.new_tag("ul")
+        for list_item in self.soup.find_all("li"):
+            if list_item.find_previous().name == "li":
+                ul_tag.append(list_item)
             else:
-                break
+                ul_tag = self.soup.new_tag("ul")
+                list_item.wrap(ul_tag)
 
-    # Assign id to chapter nav items
-    def chapter_nav_id(self, soup):
-        for chapter_nav_item in soup.findAll("li"):
-            #del (chapter_nav_item["class"])
-            chapter_nav_item["class"] = []
-            chap_dic = chapter_nav_item.attrs
-            #chap_dic.clear()
-            chap_dic.pop('class')
-            chap_nav_nums = re.findall(r'\d', chapter_nav_item.text)
-            chap_nav_id = "".join(chap_nav_nums)
-            chapter_nav_item['id'] = f"t01c0{chap_nav_id}-cnav0{chap_nav_id}"
+    #create a reference
+    def create_chap_sec_nav(self):
+        count = 0
+        for nav_tag in self.soup.find_all("li"):
+            if re.match(r'^(CHAPTER)', nav_tag.text.strip()):
+                chap_nav_nums = re.search(r'\d', nav_tag.text.strip())
+                chap_nums = re.search(r'\d', nav_tag.text).group(0).zfill(2)
+                if chap_nav_nums:
+                    nav_list = []
+                    nav_link = self.soup.new_tag('a')
+                    nav_link.append(nav_tag.text)
+                    nav_link["href"] = f"#t{self.title_id}c{chap_nums}"
+                    nav_list.append(nav_link)
+                    nav_tag.contents = nav_list
+            else:
+                if re.match(r'^(\d+\.\d+)', nav_tag.text.strip()):
+                    chap_num = re.search(r'^([^\.]+)', nav_tag.text).group().zfill(2)
+                    sec_num = re.search(r'^(\d+\.\d+)', nav_tag.text).group(1).zfill(2)
+                    sec_pattern = re.search(r'^(\d+\.\d+)', nav_tag.text.strip()).group()
+                    sec_next_tag = nav_tag.find_next('li')
+                    if sec_next_tag is not None:
+                        if sec_pattern in sec_next_tag.text:
 
-        soup.find("nav").append(soup.find("ul", class_="leaders"))
+                            nav_list = []
+                            nav_link = self.soup.new_tag('a')
+                            nav_link.string = nav_tag.text
+                            nav_link["href"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
+                            nav_list.append(nav_link)
+                            nav_tag.contents = nav_list
 
+                        else:
+                            nav_list = []
+                            nav_link = self.soup.new_tag('a')
+                            nav_link.string = nav_tag.text
+                            nav_link["href"] = f"t{self.title_id}c{chap_num}s{sec_num}"
+                            nav_list.append(nav_link)
+                            nav_tag.contents = nav_list
 
-    # wrap chapter nav items with anchor tag
-    def chapter_nav(self, soup):
-
-        all_nav_headers = soup.find_all("li")
-        for nav_head in all_nav_headers:
-            chap_nav_nums = re.findall(r'\d', nav_head.text)
-            chap_nav_id = "".join(chap_nav_nums)
-
-            new_list = []
-            new_link = soup.new_tag('a')
-            new_link.append(nav_head.text)
-            new_link["href"] = f"#t01c0{chap_nav_id}"
-            new_list.append(new_link)
-            nav_head.contents = new_list
-
-
-    # wrap the main content
-    def main_tag(self, soup):
-        section_nav_tag = soup.new_tag("main")
-        tags = [tags.wrap(section_nav_tag) for tags in soup.find_all(['p', 'h2', 'h3'])]
-
-    # wrap section   with nav tag
-    def section_nav(self, soup):
-        for tag in soup.findAll("p", class_="p2"):
-            tag.name = "li"
-
-        chap_div = [tag.wrap(soup.new_tag("div")) for tag in soup.findAll("h2")]
-
-        # newlist = []
-        #
-        # new_link = soup.new_tag("ul")
-        # main_content = soup.main.findAll(["li", "div"])
-        # for main in main_content:
-        #     # print(main.find_previous().name)
-        #     print(main.find_previous().name)
-        #     print(main.name)
-        #
-        #     try:
-        #         if (main.name == "li" and main.find_previous().name == "b") or (main.name == "li" and main.find_previous().name == "li" ):
-        #             ul_tag = soup.new_tag("ul")
-        #             main.wrap(ul_tag)
-        #         else:
-        #             ul_tag.append(main)
-        #     except Exception:
-        #         pass
+                else:
+                    sec_id = re.sub(r'\s+', '', nav_tag.get_text()).lower()
+                    new_list = []
+                    new_link = self.soup.new_tag('a')
+                    new_link.string = nav_tag.text
+                    new_link["href"] = f"#t{self.title_id}c{chap_nums}{sec_id}"
+                    new_list.append(new_link)
+                    nav_tag.contents = new_list
 
 
 
@@ -125,127 +129,217 @@ class KyHtmlOperations:
 
 
 
-    # wrap div
-    def div_tag(self, soup):
-        div_tag = soup.new_tag("div")
-        mains = soup.find_all("main")
-        chapter_title = soup.main.findAll()
-        for chpter in chapter_title:
-            if chpter.name == 'h2' and chpter.find_previous_sibling("p") == None :
-                chpter.wrap(div_tag)
-
-
-    # add chapter name
-    def chap_name(self, soup):
 
 
 
 
+    # link reference to sec nav
+    def chap_sec_nav(self):
+        pattern_sec = re.compile(r'^([^\s]+[^\D]+)')
+        for tag in self.soup.find_all("li"):
+            if re.match(r'^([^\s]+[^\D]+)|^(CHAPTER)', tag.get_text().strip()):
+                if re.match(r'^(CHAPTER)', tag.text):
+                    chap_nav_nums = re.findall(r'\d', tag.text)
+                    chap_nums = re.search(r'\d', tag.text).group(0).zfill(2)
+                    if chap_nav_nums:
+                        new_list = []
+                        new_link = self.soup.new_tag('a')
+                        new_link.append(tag.text)
+                        new_link["href"] = f"#t{self.title_id}c{chap_nums}"
+                        new_list.append(new_link)
+                        tag.contents = new_list
+                else:
+                    chap_num = re.search(r'^([^\.]+)', tag.text).group().zfill(2)
+                    sec_num = re.search(r'^([^\s]+[^\D]+)', tag.text).group(1).zfill(2)
+                    if tag.find_previous().name == "li":
+                        current = re.search(r'^([^\s]+[^\D]+)', tag.text).group()
+                        prev_tag = tag.find_previous("a")
+                        if prev_tag and current in prev_tag.get_text():
+                            print(tag)
+                            count = 0
+                            new_list = []
+                            new_link = self.soup.new_tag('a')
+                            new_link.string = tag.get_text()
+                            new_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
+                            new_list.append(new_link)
+                            tag.contents = new_list
+                            tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}.snav{chap_num}-{count + 2}"
 
-        all_chapter_header = soup.findAll("p", class_="p3")
-        for chap_head in all_chapter_header:
-            chap_nums = re.findall(r'\d', chap_head.text)
-            if chap_nums != []:
-                chap_head['id'] = f"t01c0{chap_nums[0]}"
+                            new_list = []
+                            new_link = self.soup.new_tag('a')
+                            new_link.string = tag.get_text()
+                            new_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
+                            new_list.append(new_link)
+                            tag.contents = new_list
+                            tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}.snav{chap_num}-{count + 1}"
 
-            #chap_id = int(chap_nums)
-            #print(chap_nums)
-            # print(chap_nums)
-            #chap_id = "".join(chap_nums)
-            #chap_head['id'] = f"t01c0{chap_id}"
-            #chap_head.name = "h2"
+                        else:
+                            new_list = []
+                            new_link = self.soup.new_tag('a')
+                            new_link.string = tag.get_text()
+                            new_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}"
+                            new_list.append(new_link)
+                            tag.contents = new_list
+                            tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}.snav{chap_num}"
+                    else:
+                        count = 0
+                        new_list = []
+                        new_link = self.soup.new_tag('a')
+                        new_link.string = tag.get_text()
+                        new_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
+                        new_list.append(new_link)
+                        tag.contents = new_list
+                        tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}.snav{chap_num}-{count + 1}"
 
+            else:
+                sec_id = re.sub(r'\s+', '', tag.get_text()).lower()
+                new_list = []
+                new_link = self.soup.new_tag('a')
+                new_link.string = tag.text
+                new_link["href"] = f"#t{self.title_id}{sec_id}"
+                new_list.append(new_link)
+                tag.contents = new_list
 
+        # wrap the main content
 
+    def main_tag(self):
+        section_nav_tag = self.soup.new_tag("main")
+        for tags in self.soup.find_all(['p', 'h2', 'h3', 'li']):
+            if tags.attrs["class"] == [self.class_regex["ul"]] and re.match(r'^(CHAPTER)', tags.text):
+                continue
+            else:
+                tags.wrap(section_nav_tag)
 
-# ordered list---------(a)
-    def wrap_with_ordered_list(self):
-        pattern2 = re.compile(r'^[(]\D[)]')
-        pattern1 = re.compile(r'^(\d+)|^([(]\d+[)])')
-        pattern = re.compile(r'^(\d+)|^([(]\d+[)])|^[(].[)]')
+    # wrap a content with ol tag
+    def wrap_with_ordered_tag(self):
+        pattern = re.compile(r'^(\d+)|^([(]\d+[)]|^[(]\D[)])')
 
-        # convert p into li
-        for tag in self.soup.findAll("p", class_="p6"):
-            if re.match(pattern, tag.text):
+        Num_bracket_pattern = re.compile(r'^\(\d+\)')
+        alpha_pattern = re.compile(r'^\(\D+\)')
+        # alp_pattern = re.compile(r'\(\D+\)')
+        num_pattern = re.compile(r'^\d+')
+        num_pattern1 = re.compile(r'^1')
+        numAlpha_pattern = re.compile(r'^\(\d+\)\s\(\D+\)')
+        alphanum_pattern = re.compile(r'^\(\D+\)\s(\d)+')
+
+        ol_tag2 = self.soup.new_tag("ol", type="a")
+        ol_tag = self.soup.new_tag("ol")
+        ol_tag3 = self.soup.new_tag("ol")
+
+        for tag in self.soup.findAll("p", class_=self.class_regex["ol"]):
+            if re.match(pattern, tag.text.strip()):
                 tag.name = "li"
 
-            if re.match(pattern2, tag.text):
-                if not re.match(pattern, tag.find_previous().text):
+        for tag in self.soup.findAll("li", class_=self.class_regex["ol"]):
+
+            # (1)......
+            if re.match(Num_bracket_pattern, tag.text.strip()):
+                pattern1 = re.findall(r'^\(\d+\)', tag.text.strip())
+                index = re.findall(r'\d+', str(pattern1))
+                strings = [str(integer) for integer in index]
+                a_string = "".join(strings)
+                a_int = int(a_string)
+
+                if a_int > 1:
                     ol_tag.append(tag)
-                else:
+                elif a_int == 1:
                     ol_tag = self.soup.new_tag("ol")
                     tag.wrap(ol_tag)
 
-            # ol_tag = self.soup.new_tag("ol")
-            # if re.match(pattern, tag.text):
-            #     if tag.find_previous().name == "li":
-            #         if re.match(pattern1, tag.next):
-            #             if re.match(pattern1, tag.find_previous().text) or re.match(pattern2, tag.find_previous().text):
-            #                 ol_tag.append(tag)
-            #         else:
-            #             if re.match(pattern2,tag.find_previous().text):
-            #                 ol_tag.append(tag)
-            #             else:
-            #                 tag.wrap(ol_tag)
-            #                 ol_tag.append(tag)
-            #     else:
-            #         ol_tag = self.soup.new_tag("ol")
-            #         tag.wrap(ol_tag)
-
-    # ordered list------------(1)(a)
-    def ordered_list(self):
-        for tag in self.soup.findAll("p", class_="p8"):
-            tag.name = "h4"
-
-        pattern2 = re.compile(r'^[(]\D[)]')
-        pattern1 = re.compile(r'^(\d+)|^([(]\d+[)])')
-        pattern = re.compile(r'^(\d+)|^([(]\d+[)])|^[(].[)]')
-
-        # convert p into li
-        for tag in self.soup.findAll("p", class_="p6"):
-            if re.match(pattern, tag.text):
-                tag.name = "li"
-
-        # list
-        ol_tag1 = self.soup.new_tag("ol")
-        ol_tag2 = self.soup.new_tag("ol")
-        for tag in self.soup.findAll("li", class_="p6"):
-            if re.match(pattern1, tag.text):
-                if re.match(pattern1, tag.find_previous().text) or re.match(pattern2, tag.find_previous().text):
-                    ol_tag1.append(tag)
-                else:
-                    ol_tag1 = self.soup.new_tag("ol")
-                    tag.wrap(ol_tag1)
+            # 1.......
+            if re.match(num_pattern, tag.text.strip()) and tag.find_previous().name == "span":
+                ol_tag = self.soup.new_tag("ol")
+                tag.wrap(ol_tag)
             else:
-                if re.match(pattern2, tag.find_previous().text):
-                    ol_tag2.append(tag)
-                else:
-                    ol_tag2 = self.soup.new_tag("ol")
+                ol_tag.append(tag)
+
+            # (a).......
+            pattern_new = re.compile(r'^\(a+\)')
+            if re.match(alpha_pattern, tag.text.strip()):
+                if re.match(pattern_new, tag.text.strip()):
+
+                    ol_tag2 = self.soup.new_tag("ol", type="a")
                     tag.wrap(ol_tag2)
-                    # ol_tag1.append(tag)
+                    ol_tag.append(ol_tag2)
+                    tag.find_previous("li").append(ol_tag2)
+
+                else:
+                    ol_tag2.append(tag)
+
+            # (1)(a)............
+            if re.match(numAlpha_pattern, tag.text.strip()):
+                ol_tag2 = self.soup.new_tag("ol", type="a")
+
+                li_tag = self.soup.new_tag("li")
+                li_tag.append(tag.text.strip())
+                ol_tag2.append(li_tag)
+                tag.contents = []
+                tag.append(ol_tag2)
+
+            elif re.match(alpha_pattern, tag.text.strip()):
+                if re.match(Num_bracket_pattern, tag.find_previous().text.strip()):
+                    ol_tag2.append(tag)
+                elif re.match(alpha_pattern, tag.find_previous().text.strip()):
+                    ol_tag2.append(tag)
+                elif re.match(num_pattern, tag.find_previous().text.strip()):
+                    ol_tag2.append(tag)
+
+            # (a)1. .............
+            if re.match(alphanum_pattern, tag.text.strip()):
+
+                ol_tag3 = self.soup.new_tag("ol")
+                li_tag = self.soup.new_tag("li")
+                li_tag.append(tag.text.strip())
+                ol_tag3.append(li_tag)
+                ol_tag2.append(ol_tag3)
+                tag.contents = []
+                tag.append(ol_tag3)
+
+            elif re.match(num_pattern, tag.text.strip()) and re.match(alphanum_pattern, tag.find_previous().text.strip()):
+                ol_tag3.append(tag)
+
+    # main method
+    def start(self):
+        self.create_soup()
+        self.Css_file()
+        self.get_class_names()  # assign id to the li
+        self.clear_junk()
+        self.set_appropriate_tag_name_and_id()
+        self.create_ul_tag()
+        self.create_chap_sec_nav()
+
+        # self.create_main_tag()
+
+        # self.convert_li()
+        # self.sec_headers()
+        # self.main_tag()
+        # self.ul_tag()
+        # self.chap_sec_nav()
+        # self.wrap_with_ordered_tag()
+        # self.wrap_with_ordered_list2()
+
+        # self.new_section_head()
+        self.write_into_soup()
+
+    # create a soup
+    def create_soup(self):
+        with open("/home/mis/ky/gov.ky.krs.title.01.html") as fp:
+            self.soup = BeautifulSoup(fp, "lxml")
+
+    # write into a soup
+    def write_into_soup(self):
+        with open("ky1.html", "w") as file:
+            file.write(str(self.soup))
+
+    # add css file
+    def Css_file(self):
+        head = self.soup.find("head")
+        css_link = self.soup.new_tag("link")
+        css_link.attrs["href"] = "https://unicourt.github.io/cic-code-ga/transforms/ga/stylesheet/ga_code_stylesheet.css"
+        css_link.attrs["rel"] = "stylesheet"
+        css_link.attrs["type"] = "text/css"
+        head.append(css_link)
 
 
-with open("/home/mis/gov.ky.krs.title.01.html") as fp:
-    soup = BeautifulSoup(fp, "lxml")
-
-KyHtmlOperations_obj = KyHtmlOperations(soup)  # create a class object
-
-KyHtmlOperations_obj.chap_name(soup)
-
-
-#KyHtmlOperations_obj. set_ul_tag(soup)
-
-#KyHtmlOperations_obj.chapter_header_id(soup)
-#KyHtmlOperations_obj.section_header_id(soup)
-#KyHtmlOperations_obj.set_appropriate_tag(soup)
-#KyHtmlOperations_obj.chapter_nav_id(soup)
-#KyHtmlOperations_obj.chapter_nav(soup)
-#KyHtmlOperations_obj.main_tag(soup)
-#KyHtmlOperations_obj.section_nav(soup)
-#KyHtmlOperations_obj.clear_tag(soup)
-#KyHtmlOperations_obj.div_tag(soup)
-#KyHtmlOperations_obj.nav_wrap(soup)
-#KyHtmlOperations_obj.remove_class_attribute(soup)
-
-with open("ky.html", "w") as file:
-    file.write(str(soup))
+KyHtmlOperations_obj = KyHtmlOperations()  # create a class object
+KyHtmlOperations_obj.start()
