@@ -213,51 +213,51 @@ class KyHtmlOperations:
 
         # assign id to chapter header
 
-    def chapter_header_id(self):
-        for chap_head in self.soup.findAll("p", class_=self.class_regex["head2"]):
-            if re.match("(CHAPTER)", chap_head.text):
-                chap_head.name = "h2"
-                chap_split = chap_head.text.split(' ')
-                chap_nums = chap_split[1]
-                chap_num = chap_nums.zfill(2)
-                chap_head['id'] = f"t{self.title_id}c{chap_num}"
-            else:
-                chap_head.name = "h3"
-                chap_head["id"] = chap_head.text.replace(" ", "").lower()
-
-        # assign id to section headers
-        def sec_headers(self):
-            for tag in self.soup.find_all(name="p", class_=self.class_regex["sec_head"]):
-                current = re.findall(r'^([^\s]+[^\D]+)', tag.text)
-                next1 = tag.find_next(name="p", class_=self.class_regex["sec_head"])
-
-                if next1 is not None:
-                    next2 = re.findall(r'^([^\s]+[^\D]+)', next1.text)
-
-                chap_num = re.findall(r'^([^\.]+)', tag.text)
-                sec_num = re.findall(r'^([^\s]+[^\D]+)', tag.text)
-
-                if current[0] == next2[0]:
-                    sub_sec = tag.text.replace(" ", "").lower()
-                    if chap_num[0].isdigit():
-                        if int(chap_num[0]) <= 9:
-                            tag["id"] = f"t{self.title_id}c0{chap_num[0]}s{sub_sec}"
-
-                        else:
-                            tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sub_sec}"
-                    else:
-                        tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sub_sec}"
-
-                else:
-                    if chap_num[0].isdigit():
-                        if int(chap_num[0]) <= 9:
-                            tag["id"] = f"t{self.title_id}c0{chap_num[0]}s{sec_num[0]}"
-                        else:
-                            tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sec_num[0]}"
-                    else:
-                        tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sec_num[0]}"
-
-                tag.name = "h3"
+    # def chapter_header_id(self):
+    #     for chap_head in self.soup.findAll("p", class_=self.class_regex["head2"]):
+    #         if re.match("(CHAPTER)", chap_head.text):
+    #             chap_head.name = "h2"
+    #             chap_split = chap_head.text.split(' ')
+    #             chap_nums = chap_split[1]
+    #             chap_num = chap_nums.zfill(2)
+    #             chap_head['id'] = f"t{self.title_id}c{chap_num}"
+    #         else:
+    #             chap_head.name = "h3"
+    #             chap_head["id"] = chap_head.text.replace(" ", "").lower()
+    #
+    #     # assign id to section headers
+    #     def sec_headers(self):
+    #         for tag in self.soup.find_all(name="p", class_=self.class_regex["sec_head"]):
+    #             current = re.findall(r'^([^\s]+[^\D]+)', tag.text)
+    #             next1 = tag.find_next(name="p", class_=self.class_regex["sec_head"])
+    #
+    #             if next1 is not None:
+    #                 next2 = re.findall(r'^([^\s]+[^\D]+)', next1.text)
+    #
+    #             chap_num = re.findall(r'^([^\.]+)', tag.text)
+    #             sec_num = re.findall(r'^([^\s]+[^\D]+)', tag.text)
+    #
+    #             if current[0] == next2[0]:
+    #                 sub_sec = tag.text.replace(" ", "").lower()
+    #                 if chap_num[0].isdigit():
+    #                     if int(chap_num[0]) <= 9:
+    #                         tag["id"] = f"t{self.title_id}c0{chap_num[0]}s{sub_sec}"
+    #
+    #                     else:
+    #                         tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sub_sec}"
+    #                 else:
+    #                     tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sub_sec}"
+    #
+    #             else:
+    #                 if chap_num[0].isdigit():
+    #                     if int(chap_num[0]) <= 9:
+    #                         tag["id"] = f"t{self.title_id}c0{chap_num[0]}s{sec_num[0]}"
+    #                     else:
+    #                         tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sec_num[0]}"
+    #                 else:
+    #                     tag["id"] = f"t{self.title_id}c{chap_num[0]}s{sec_num[0]}"
+    #
+    #             tag.name = "h3"
 
     # wrap section nav with a tag
 
