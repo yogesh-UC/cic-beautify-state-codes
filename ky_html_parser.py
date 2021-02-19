@@ -77,6 +77,20 @@ class KyHtmlOperations:
                 ul_tag = self.soup.new_tag("ul")
                 list_item.wrap(ul_tag)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     # wrap the main content
     def create_main_tag(self):
         section_nav_tag = self.soup.new_tag("main")
