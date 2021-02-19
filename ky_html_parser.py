@@ -42,12 +42,14 @@ class KyHtmlOperations:
                     header_tag.name = "h2"
                     header_tag['id'] = f"t{self.title_id}c{chap_nums}"
                 else:
+
                     header_tag.name = "h3"
                     header_id = re.sub(r'\s+', '', header_tag.get_text()).lower()
                     header_tag["id"] = f"t{self.title_id}c{chap_nums}{header_id}"
 
             elif header_tag.get("class") == [self.class_regex["sec_head"]]:
                 header_tag.name = "h3"
+
                 sec_pattern = re.compile(r'^(\d+\.\d+)')
                 if re.match(sec_pattern, header_tag.text.strip()):
                     chap_num = re.search(r'^([^\.]+)', header_tag.text).group().zfill(2)
@@ -58,10 +60,29 @@ class KyHtmlOperations:
 
                         prev_tag = header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"])
                         if header_pattern in prev_tag.text:
+
                             count = 0
                             prev_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
                             header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
                         else:
+
+                            header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
+
+                else:
+                    chap_num = re.search(r'^([^\.]+)', header_tag.text).group().zfill(2)
+                    sec_num = re.search(r'^(\d+\D\.\d+)', header_tag.text).group().zfill(2)
+
+                    header_pattern = re.search(r'^(\d+\D\.\d+)', header_tag.text.strip()).group()
+                    if header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"]) is not None:
+
+                        prev_tag = header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"])
+                        if header_pattern in prev_tag.text:
+
+                            count = 0
+                            prev_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
+                            header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
+                        else:
+
                             header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
 
             elif header_tag.get("class") == [self.class_regex["ul"]]:
@@ -99,13 +120,14 @@ class KyHtmlOperations:
         count = 0
         for list_item in self.soup.find_all("li"):
             if re.match(r'^(CHAPTER)', list_item.text.strip()):
-                chap_nav_nums = re.search(r'\d', list_item.text.strip())
-                chap_nums = re.search(r'\d', list_item.text).group(0).zfill(2)
+                chap_nav_nums = re.search(r'(\s+[^\s]+)', list_item.text.strip())
+                chap_nums = re.search(r'(\s+[^\s]+)', list_item.text).group(0)
+                chap_num = re.sub(r'\s+', '', chap_nums).zfill(2)
                 if chap_nav_nums:
                     nav_list = []
                     nav_link = self.soup.new_tag('a')
                     nav_link.append(list_item.text)
-                    nav_link["href"] = f"#t{self.title_id}c{chap_nums}"
+                    nav_link["href"] = f"#t{self.title_id}c{chap_num}"
                     nav_list.append(nav_link)
                     list_item.contents = nav_list
             else:
@@ -142,12 +164,32 @@ class KyHtmlOperations:
                                 nav_list.append(nav_link)
                                 list_item.contents = nav_list
 
+                elif re.match(r'^(\d+\D\.\d+)', list_item.text.strip()):
+                    chap_num = re.search(r'^([^\.]+)', list_item.text).group().zfill(2)
+                    sec_num = re.search(r'^(\d+\D\.\d+)', list_item.text).group(1).zfill(2)
+                    nav_list = []
+                    nav_link = self.soup.new_tag('a')
+                    nav_link.string = list_item.text
+                    nav_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}"
+                    nav_list.append(nav_link)
+                    list_item.contents = nav_list
+
+
+
+
+
+
+
+
                 else:
+                    chapter_header = list_item.find_previous("h2")
+                    chap_nums = re.search(r'(\s+[^\s]+)', chapter_header.text).group(0)
+                    chap_num = re.sub(r'\s+', '', chap_nums).zfill(2)
                     sec_id = re.sub(r'\s+', '', list_item.get_text()).lower()
                     new_list = []
                     new_link = self.soup.new_tag('a')
                     new_link.string = list_item.text
-                    new_link["href"] = f"#t{self.title_id}c{chap_nums}{sec_id}"
+                    new_link["href"] = f"#t{self.title_id}c{chap_num}{sec_id}"
                     new_list.append(new_link)
                     list_item.contents = new_list
 
