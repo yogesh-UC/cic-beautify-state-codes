@@ -1,11 +1,12 @@
 from bs4 import BeautifulSoup
 import re
 
+
 class KyHtmlOperations:
 
     def __init__(self):
         self.class_regex = {'ul': '^CHAPTER', 'head2': '^CHAPTER', 'title': '^(TITLE)', 'sec_head': r'^([^\s]+[^\D]+)',
-                            'junk': '^(Text)', 'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])'}
+                            'junk': '^(Text)', 'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])', 'head4': '^(NOTES TO DECISIONS)'}
         self.title_id = None
         self.soup = None
 
@@ -27,17 +28,17 @@ class KyHtmlOperations:
             b_tag.name = "span"
             b_tag["class"] = "boldspan"
 
-
-
     # replace title tag to "h1" and wrap it with "nav" tag
     def set_appropriate_tag_name_and_id(self):
         for header_tag in self.soup.body.find_all():
             if header_tag.get("class") == [self.class_regex["title"]]:
                 header_tag.name = "h1"
-                self.title_id = re.search(r'^(?:[^ ]*\ ){1}([^ ]*)', header_tag.text.strip()).group(1)
+                title_id1 = re.search(r'(\s+[^\s]+)', header_tag.text.strip()).group(1)
+                self.title_id = re.sub(r'\s+', '', title_id1)
             elif header_tag.get("class") == [self.class_regex["head2"]]:
                 if re.search("^(CHAPTER)", header_tag.text):
-                    chap_nums = re.search(r'^(?:[^ ]*\ ){1}([^ ]*)', header_tag.text.strip()).group(1).zfill(2)
+                    chap_num = re.search(r'(\s+[^\s]+)', header_tag.text.strip()).group(1)
+                    chap_nums = re.sub(r'\s+', '', chap_num).zfill(2)
                     header_tag.name = "h2"
                     header_tag['id'] = f"t{self.title_id}c{chap_nums}"
                 else:
@@ -63,6 +64,9 @@ class KyHtmlOperations:
             elif header_tag.get("class") == [self.class_regex["ul"]]:
                 header_tag.name = "li"
 
+            elif header_tag.get('class') == [self.class_regex["head4"]]:
+                header_tag.name = "h4"
+
     # wrap list items with ul tag
     def create_ul_tag(self):
         ul_tag = self.soup.new_tag("ul")
@@ -73,7 +77,21 @@ class KyHtmlOperations:
                 ul_tag = self.soup.new_tag("ul")
                 list_item.wrap(ul_tag)
 
-    #create a reference
+    # wrap the main content
+    def create_main_tag(self):
+        section_nav_tag = self.soup.new_tag("main")
+        first_chapter_header = self.soup.find(class_=self.class_regex["head2"])
+        for main_tag in self.soup.find_all("p"):
+            if re.match(r'^(TITLE)', main_tag.text.strip()):
+                continue
+            elif re.match(r'^CHAPTER', main_tag.text.strip()) and main_tag.get("class") == [self.class_regex["ul"]]:
+                continue
+            elif main_tag == first_chapter_header:
+                main_tag.wrap(section_nav_tag)
+            else:
+                section_nav_tag.append(main_tag)
+
+    # create a reference
     def create_chap_sec_nav(self):
         count = 0
         for nav_tag in self.soup.find_all("li"):
@@ -93,13 +111,14 @@ class KyHtmlOperations:
                     sec_num = re.search(r'^(\d+\.\d+)', nav_tag.text).group(1).zfill(2)
                     sec_pattern = re.search(r'^(\d+\.\d+)', nav_tag.text.strip()).group()
                     sec_next_tag = nav_tag.find_next('li')
+                    # sec_prev_tag = nav_tag.find_previous("li")
+                    # sec_prev_tag_text = sec_prev_tag.text
                     if sec_next_tag is not None:
                         if sec_pattern in sec_next_tag.text:
-
                             nav_list = []
                             nav_link = self.soup.new_tag('a')
                             nav_link.string = nav_tag.text
-                            nav_link["href"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
+                            nav_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
                             nav_list.append(nav_link)
                             nav_tag.contents = nav_list
 
@@ -107,9 +126,17 @@ class KyHtmlOperations:
                             nav_list = []
                             nav_link = self.soup.new_tag('a')
                             nav_link.string = nav_tag.text
-                            nav_link["href"] = f"t{self.title_id}c{chap_num}s{sec_num}"
+                            nav_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}"
                             nav_list.append(nav_link)
                             nav_tag.contents = nav_list
+
+                    else:
+                        nav_list = []
+                        nav_link = self.soup.new_tag('a')
+                        nav_link.string = nav_tag.text
+                        nav_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}"
+                        nav_list.append(nav_link)
+                        nav_tag.contents = nav_list
 
                 else:
                     sec_id = re.sub(r'\s+', '', nav_tag.get_text()).lower()
@@ -121,99 +148,9 @@ class KyHtmlOperations:
                     nav_tag.contents = new_list
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-    # link reference to sec nav
-    def chap_sec_nav(self):
-        pattern_sec = re.compile(r'^([^\s]+[^\D]+)')
-        for tag in self.soup.find_all("li"):
-            if re.match(r'^([^\s]+[^\D]+)|^(CHAPTER)', tag.get_text().strip()):
-                if re.match(r'^(CHAPTER)', tag.text):
-                    chap_nav_nums = re.findall(r'\d', tag.text)
-                    chap_nums = re.search(r'\d', tag.text).group(0).zfill(2)
-                    if chap_nav_nums:
-                        new_list = []
-                        new_link = self.soup.new_tag('a')
-                        new_link.append(tag.text)
-                        new_link["href"] = f"#t{self.title_id}c{chap_nums}"
-                        new_list.append(new_link)
-                        tag.contents = new_list
-                else:
-                    chap_num = re.search(r'^([^\.]+)', tag.text).group().zfill(2)
-                    sec_num = re.search(r'^([^\s]+[^\D]+)', tag.text).group(1).zfill(2)
-                    if tag.find_previous().name == "li":
-                        current = re.search(r'^([^\s]+[^\D]+)', tag.text).group()
-                        prev_tag = tag.find_previous("a")
-                        if prev_tag and current in prev_tag.get_text():
-                            print(tag)
-                            count = 0
-                            new_list = []
-                            new_link = self.soup.new_tag('a')
-                            new_link.string = tag.get_text()
-                            new_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
-                            new_list.append(new_link)
-                            tag.contents = new_list
-                            tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}.snav{chap_num}-{count + 2}"
-
-                            new_list = []
-                            new_link = self.soup.new_tag('a')
-                            new_link.string = tag.get_text()
-                            new_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
-                            new_list.append(new_link)
-                            tag.contents = new_list
-                            tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}.snav{chap_num}-{count + 1}"
-
-                        else:
-                            new_list = []
-                            new_link = self.soup.new_tag('a')
-                            new_link.string = tag.get_text()
-                            new_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}"
-                            new_list.append(new_link)
-                            tag.contents = new_list
-                            tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}.snav{chap_num}"
-                    else:
-                        count = 0
-                        new_list = []
-                        new_link = self.soup.new_tag('a')
-                        new_link.string = tag.get_text()
-                        new_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
-                        new_list.append(new_link)
-                        tag.contents = new_list
-                        tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}.snav{chap_num}-{count + 1}"
-
-            else:
-                sec_id = re.sub(r'\s+', '', tag.get_text()).lower()
-                new_list = []
-                new_link = self.soup.new_tag('a')
-                new_link.string = tag.text
-                new_link["href"] = f"#t{self.title_id}{sec_id}"
-                new_list.append(new_link)
-                tag.contents = new_list
-
-        # wrap the main content
-
-    def main_tag(self):
-        section_nav_tag = self.soup.new_tag("main")
-        for tags in self.soup.find_all(['p', 'h2', 'h3', 'li']):
-            if tags.attrs["class"] == [self.class_regex["ul"]] and re.match(r'^(CHAPTER)', tags.text):
-                continue
-            else:
-                tags.wrap(section_nav_tag)
-
     # wrap a content with ol tag
     def wrap_with_ordered_tag(self):
         pattern = re.compile(r'^(\d+)|^([(]\d+[)]|^[(]\D[)])')
-
         Num_bracket_pattern = re.compile(r'^\(\d+\)')
         alpha_pattern = re.compile(r'^\(\D+\)')
         # alp_pattern = re.compile(r'\(\D+\)')
@@ -304,11 +241,12 @@ class KyHtmlOperations:
         self.Css_file()
         self.get_class_names()  # assign id to the li
         self.clear_junk()
+        self.create_main_tag()
         self.set_appropriate_tag_name_and_id()
         self.create_ul_tag()
         self.create_chap_sec_nav()
 
-        # self.create_main_tag()
+
 
         # self.convert_li()
         # self.sec_headers()
@@ -335,7 +273,8 @@ class KyHtmlOperations:
     def Css_file(self):
         head = self.soup.find("head")
         css_link = self.soup.new_tag("link")
-        css_link.attrs["href"] = "https://unicourt.github.io/cic-code-ga/transforms/ga/stylesheet/ga_code_stylesheet.css"
+        css_link.attrs[
+            "href"] = "https://unicourt.github.io/cic-code-ga/transforms/ga/stylesheet/ga_code_stylesheet.css"
         css_link.attrs["rel"] = "stylesheet"
         css_link.attrs["type"] = "text/css"
         head.append(css_link)
