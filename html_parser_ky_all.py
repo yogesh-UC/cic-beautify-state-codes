@@ -271,7 +271,7 @@ class KyHtmlOperations:
 
     # write into a soup
     def write_into_soup(self):
-        with open("ky1.html", "w") as file:
+        with open("files/ky1.html", "w") as file:
             file.write(str(self.soup))
 
     # add css file
