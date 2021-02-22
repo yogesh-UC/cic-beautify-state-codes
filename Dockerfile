@@ -1,9 +1,9 @@
-From python:3.7
+From alpine:3.7
 
-#COPY ./requirement.txt/ pythonProject/requirement.txt
-COPY . /pythonProject
+COPY ./requirements.txt/ pythonProject/requirements.txt
+# COPY . /pythonProject
 
 
 WORKDIR /pythonProject
 
-RUN pip3 install -r requirement.txt
+RUN pip3 install -r requirements.txt

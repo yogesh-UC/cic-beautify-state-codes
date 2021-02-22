@@ -93,12 +93,12 @@ class KyHtmlOperations:
 
     # wrap list items with ul tag
     def create_ul_tag(self):
-        ul_tag = self.soup.new_tag("ul")
+        ul_tag = self.soup.new_tag("ul", class_="leaders")
         for list_item in self.soup.find_all("li"):
             if list_item.find_previous().name == "li":
                 ul_tag.append(list_item)
             else:
-                ul_tag = self.soup.new_tag("ul")
+                ul_tag = self.soup.new_tag("ul", class_="leaders")
                 list_item.wrap(ul_tag)
 
     # wrap the main content
@@ -173,13 +173,6 @@ class KyHtmlOperations:
                     nav_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}"
                     nav_list.append(nav_link)
                     list_item.contents = nav_list
-
-
-
-
-
-
-
 
                 else:
                     chapter_header = list_item.find_previous("h2")
@@ -298,7 +291,7 @@ class KyHtmlOperations:
         # self.main_tag()
         # self.ul_tag()
         # self.chap_sec_nav()
-        # self.wrap_with_ordered_tag()
+        self.wrap_with_ordered_tag()
         # self.wrap_with_ordered_list2()
 
         # self.new_section_head()
@@ -306,12 +299,12 @@ class KyHtmlOperations:
 
     # create a soup
     def create_soup(self):
-        with open("/home/mis/ky/gov.ky.krs.title.02.html") as fp:
+        with open("/home/mis/ky/gov.ky.krs.title.01.html") as fp:
             self.soup = BeautifulSoup(fp, "lxml")
 
     # write into a soup
     def write_into_soup(self):
-        with open("ky2.html", "w") as file:
+        with open("ky1.html", "w") as file:
             file.write(str(self.soup))
 
     # add css file
