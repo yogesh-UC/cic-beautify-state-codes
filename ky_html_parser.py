@@ -17,7 +17,7 @@ class KyHtmlOperations:
                 lambda tag: tag.name == 'p' and re.search(self.class_regex.get(key), tag.get_text().strip()) and
                             tag.attrs["class"][0] not in self.class_regex.values())
             self.class_regex[key] = tag_class.get('class')[0]
-        # print(self.class_regex)
+        print(self.class_regex)
 
     # clear junk
     def clear_junk(self):
@@ -33,6 +33,7 @@ class KyHtmlOperations:
         for header_tag in self.soup.body.find_all():
             if header_tag.get("class") == [self.class_regex["title"]]:
                 header_tag.name = "h1"
+                header_tag.wrap(self.soup.new_tag("nav"))
                 title_id1 = re.search(r'(\s+[^\s]+)', header_tag.text.strip()).group(1)
                 self.title_id = re.sub(r'\s+', '', title_id1)
             elif header_tag.get("class") == [self.class_regex["head2"]]:
@@ -96,11 +97,30 @@ class KyHtmlOperations:
     def create_ul_tag(self):
         ul_tag = self.soup.new_tag("ul", class_="leaders")
         for list_item in self.soup.find_all("li"):
+
+
             if list_item.find_previous().name == "li":
                 ul_tag.append(list_item)
             else:
                 ul_tag = self.soup.new_tag("ul", class_="leaders")
                 list_item.wrap(ul_tag)
+
+
+
+    # wrap list items with ul tag and then nav tag
+    def create_ul_tag1(self):
+        ul_tag = self.soup.new_tag("ul", class_="leaders")
+        for list_item in self.soup.find_all("li"):
+            if list_item["class"] == ['p2'] and re.match(r'^CHAPTER',list_item.text):
+                list_item.find_previous("nav").append(list_item)
+            else:
+                if list_item.find_previous().name == "li":
+                    ul_tag.append(list_item)
+                else:
+                    ul_tag = self.soup.new_tag("ul", class_="leaders")
+                    list_item.wrap(ul_tag)
+
+                    ul_tag.wrap(self.soup.new_tag("nav"))
 
     # wrap the main content
     def create_main_tag(self):
@@ -195,87 +215,67 @@ class KyHtmlOperations:
                     list_item.contents = new_list
 
     # wrap a content with ol tag
-    def wrap_with_ordered_tag1(self):
-        pattern = re.compile(r'^(\d+)|^([(]\d+[)]|^[(]\D[)])')
-        Num_bracket_pattern = re.compile(r'^\(\d+\)')
-        alpha_pattern = re.compile(r'^\(\D+\)')
-        # alp_pattern = re.compile(r'\(\D+\)')
-        num_pattern = re.compile(r'^\d+')
-        num_pattern1 = re.compile(r'^1')
-        numAlpha_pattern = re.compile(r'^\(\d+\)\s\(\D+\)')
-        alphanum_pattern = re.compile(r'^\(\D+\)\s(\d)+')
-
-        ol_tag1 = self.soup.new_tag("ol", type="a")
-        ol_tag = self.soup.new_tag("ol")
-        ol_tag3 = self.soup.new_tag("ol")
-
-        for tag in self.soup.findAll("p", class_=self.class_regex["ol"]):
-            if re.match(pattern, tag.text.strip()):
-                tag.name = "li"
-
-        for tag in self.soup.findAll("li", class_=self.class_regex["ol"]):
-            if re.match(pattern, tag.text.strip()):
-
-                # (1)......
-                if re.match(Num_bracket_pattern, tag.text.strip()):
-                    pattern1 = re.findall(r'^\(\d+\)', tag.text.strip())
-                    index = re.findall(r'\d+', str(pattern1))
-                    strings = [str(integer) for integer in index]
-                    a_string = "".join(strings)
-                    a_int = int(a_string)
-
-                    if a_int > 1:
-                        ol_tag.append(tag)
-                    elif a_int == 1:
-                        ol_tag = self.soup.new_tag("ol")
-                        tag.wrap(ol_tag)
-
-                pattern_new = re.compile(r'^\(a+\)|^(a)')
-                if re.match(alpha_pattern, tag.text.strip()):
-                    if re.match(pattern_new, tag.text.strip()):
-                        ol_tag2 = self.soup.new_tag("ol", type="a")
-                        tag.wrap(ol_tag2)
-                        ol_tag.append(ol_tag2)
-                        tag.find_previous("li").append(ol_tag2)
-
-                # # (a).......
-                # pattern_new = re.compile(r'^\(a+\)')
-                # if re.match(alpha_pattern, tag.text.strip()):
-                #     if re.match(pattern_new, tag.text.strip()):
-                #         ol_tag2 = self.soup.new_tag("ol", type="a")
-                #         tag.wrap(ol_tag2)
-                #         ol_tag.append(ol_tag2)
-                #         tag.find_previous("li").append(ol_tag2)
-                #
-                #     else:
-                #
-                #         prev= ord(tag.find_previous("li").text[2])
-                #         prev_ord = prev + 1
-                #
-                #         print(tag.find_previous("li"))
-                #         if ord(tag.text[2]) == prev_ord:
-                #             # print(tag.text)
-                #             ol_tag2.append(tag)
-                #     # else:
-                #     #     ol_tag2.append(tag)
-
-                # (1)(a)............
-            if re.match(numAlpha_pattern, tag.text.strip()):
-                ol_tag2 = self.soup.new_tag("ol", type="a")
-
-                li_tag = self.soup.new_tag("li")
-                li_tag.append(tag.text.strip())
-                ol_tag2.append(li_tag)
-                tag.contents = []
-                tag.append(ol_tag2)
-
-            elif re.match(alpha_pattern, tag.text.strip()):
-                if re.match(Num_bracket_pattern, tag.find_previous().text.strip()):
-                    ol_tag2.append(tag)
-                elif re.match(alpha_pattern, tag.find_previous().text.strip()):
-                    ol_tag2.append(tag)
-                elif re.match(num_pattern, tag.find_previous().text.strip()):
-                    ol_tag2.append(tag)
+    # def wrap_with_ordered_tag1(self):
+    #     pattern = re.compile(r'^(\d+)|^([(]\d+[)]|^[(]\D[)])')
+    #     Num_bracket_pattern = re.compile(r'^\(\d+\)')
+    #     alpha_pattern = re.compile(r'^\(\D+\)')
+    #     # alp_pattern = re.compile(r'\(\D+\)')
+    #     num_pattern = re.compile(r'^\d+')
+    #     num_pattern1 = re.compile(r'^1')
+    #     numAlpha_pattern = re.compile(r'^\(\d+\)\s\(\D+\)')
+    #     alphanum_pattern = re.compile(r'^\(\D+\)\s(\d)+')
+    #
+    #     ol_tag1 = self.soup.new_tag("ol", type="a")
+    #     ol_tag = self.soup.new_tag("ol")
+    #     ol_tag3 = self.soup.new_tag("ol")
+    #
+    #     for tag in self.soup.findAll("p", class_=self.class_regex["ol"]):
+    #         if re.match(pattern, tag.text.strip()):
+    #             tag.name = "li"
+    #
+    #     for tag in self.soup.findAll("li", class_=self.class_regex["ol"]):
+    #         if re.match(pattern, tag.text.strip()):
+    #
+    #             # (1)......
+    #             if re.match(Num_bracket_pattern, tag.text.strip()):
+    #                 pattern1 = re.findall(r'^\(\d+\)', tag.text.strip())
+    #                 index = re.findall(r'\d+', str(pattern1))
+    #                 strings = [str(integer) for integer in index]
+    #                 a_string = "".join(strings)
+    #                 a_int = int(a_string)
+    #
+    #                 if a_int > 1:
+    #                     ol_tag.append(tag)
+    #                 elif a_int == 1:
+    #                     ol_tag = self.soup.new_tag("ol")
+    #                     tag.wrap(ol_tag)
+    #
+    #             pattern_new = re.compile(r'^\(a+\)|^(a)')
+    #             if re.match(alpha_pattern, tag.text.strip()):
+    #                 if re.match(pattern_new, tag.text.strip()):
+    #                     ol_tag2 = self.soup.new_tag("ol", type="a")
+    #                     tag.wrap(ol_tag2)
+    #                     ol_tag.append(ol_tag2)
+    #                     tag.find_previous("li").append(ol_tag2)
+    #
+    #
+    #             # (1)(a)............
+    #         if re.match(numAlpha_pattern, tag.text.strip()):
+    #             ol_tag2 = self.soup.new_tag("ol", type="a")
+    #
+    #             li_tag = self.soup.new_tag("li")
+    #             li_tag.append(tag.text.strip())
+    #             ol_tag2.append(li_tag)
+    #             tag.contents = []
+    #             tag.append(ol_tag2)
+    #
+    #         elif re.match(alpha_pattern, tag.text.strip()):
+    #             if re.match(Num_bracket_pattern, tag.find_previous().text.strip()):
+    #                 ol_tag2.append(tag)
+    #             elif re.match(alpha_pattern, tag.find_previous().text.strip()):
+    #                 ol_tag2.append(tag)
+    #             elif re.match(num_pattern, tag.find_previous().text.strip()):
+    #                 ol_tag2.append(tag)
 
 
 
@@ -314,8 +314,6 @@ class KyHtmlOperations:
                 elif a_int == 1:
                     ol_tag = self.soup.new_tag("ol")
                     tag.wrap(ol_tag)
-
-
 
             # (a).......
             pattern_new = re.compile(r'^\(a+\)')
@@ -369,14 +367,62 @@ class KyHtmlOperations:
                     tag.wrap(ol_tag1)
                     tag.find_previous("li").append(ol_tag1)
                 else:
+
                     ol_tag1.append(tag)
 
             # a.......
             pattern_a = re.compile(r'^(\D\.)')
             if re.match(pattern_a, tag.text.strip()):
-                if re.match()
-                    ol_tag4 = self.soup.new_tag("ol")
+
+                if re.match(r'^(a\.)', tag.text.strip()):
+                    ol_tag4 = self.soup.new_tag("ol", type="a")
                     tag.wrap(ol_tag4)
+                    tag.find_previous("li").append(ol_tag4)
+
+                else:
+                    ol_tag4.append(tag)
+
+
+
+    # create different divs
+    def create_div(self):
+        new_div_tag = self.soup.new_tag("div")
+        for div_item in self.soup.main.find_all():
+            if div_item.name == "h2":
+                new_div_tag = self.soup.new_tag("div")
+                div_item.wrap(new_div_tag)
+            elif div_item.name == "span":
+                if re.match(r'^(CHAPTER)', div_item.text):
+                    div_item.find_previous().append(div_item)
+            elif div_item.name == "li":
+                if div_item.find_previous("ul") is not None:
+                    div_item.find_previous("ul").append(div_item)
+            elif div_item.name == "ul":
+                if div_item.find_previous("nav") is not None:
+                    div_item.find_previous("nav").append(div_item)
+            else:
+                new_div_tag.append(div_item)
+
+
+    def create_div_tag(self):
+        new_div_tag = self.soup.new_tag("div")
+        new_div_tag2 = self.soup.new_tag("div")
+        for div_item in self.soup.main.find_all():
+            if div_item.name == "h2":
+                new_div_tag = self.soup.new_tag("div")
+                div_item.wrap(new_div_tag)
+            elif div_item.name == "span":
+                if re.match(r'^(CHAPTER)', div_item.text):
+                    div_item.find_previous().append(div_item)
+            elif div_item.name == "ul":
+                div_item.find_previous().append(div_item)
+            elif div_item.name == "li":
+                if div_item.find_previous("ul") is not None:
+                    div_item.find_previous("ul").append(div_item)
+
+            else:
+                new_div_tag.append(div_item)
+
 
 
 
@@ -389,23 +435,20 @@ class KyHtmlOperations:
         self.clear_junk()
         self.create_main_tag()
         self.set_appropriate_tag_name_and_id()
-        self.create_ul_tag()
+        self.create_ul_tag1()
         self.create_chap_sec_nav()
-
-        self.wrap_with_ordered_tag()
-
-        # self.wrap_with_ordered_tag1()
-
+        self.create_div_tag()
+        # self.wrap_with_ordered_tag()
         self.write_into_soup()
 
     # create a soup
     def create_soup(self):
-        with open("/home/mis/ky/gov.ky.krs.title.04.html") as fp:
+        with open("/home/mis/ky/gov.ky.krs.title.01.html") as fp:
             self.soup = BeautifulSoup(fp, "lxml")
 
     # write into a soup
     def write_into_soup(self):
-        with open("ky4.html", "w") as file:
+        with open("ky1.html", "w") as file:
             file.write(str(self.soup))
 
     # add css file
