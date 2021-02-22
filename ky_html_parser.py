@@ -293,6 +293,8 @@ class KyHtmlOperations:
         ol_tag1 = self.soup.new_tag("ol")
         ol_tag4 = self.soup.new_tag("ol", type="a")
 
+
+
         for tag in self.soup.findAll("p", class_=self.class_regex["ol"]):
             if re.match(pattern, tag.text.strip()):
                 tag.name = "li"
@@ -344,7 +346,7 @@ class KyHtmlOperations:
                 elif re.match(num_pattern, tag.find_previous().text.strip()):
                     ol_tag2.append(tag)
 
-            # (a)1. .............
+            # (a)1..............
             if re.match(alphanum_pattern, tag.text.strip()):
                 ol_tag3 = self.soup.new_tag("ol")
                 li_tag = self.soup.new_tag("li")
@@ -379,7 +381,6 @@ class KyHtmlOperations:
 
                 else:
                     ol_tag4.append(tag)
-
 
 
     # create different divs
@@ -431,20 +432,20 @@ class KyHtmlOperations:
         self.clear_junk()
         self.create_main_tag()
         self.set_appropriate_tag_name_and_id()
-        self.create_ul_tag1()
+        self.create_ul_tag()
         self.create_chap_sec_nav()
-        self.create_div_tag()
-        # self.wrap_with_ordered_tag()
+        # self.create_div_tag()
+        self.wrap_with_ordered_tag()
         self.write_into_soup()
 
     # create a soup
     def create_soup(self):
-        with open("/home/mis/ky/gov.ky.krs.title.01.html") as fp:
+        with open("/home/mis/ky/gov.ky.krs.title.02.html") as fp:
             self.soup = BeautifulSoup(fp, "lxml")
 
     # write into a soup
     def write_into_soup(self):
-        with open("ky1.html", "w") as file:
+        with open("ky2.html", "w") as file:
             file.write(str(self.soup))
 
     # add css file
