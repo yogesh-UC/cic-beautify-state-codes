@@ -65,10 +65,11 @@ class KyHtmlOperations:
                             prev_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
                             header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
                         else:
-
                             header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
-
+                    else:
+                        header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
                 else:
+
                     chap_num = re.search(r'^([^\.]+)', header_tag.text).group().zfill(2)
                     sec_num = re.search(r'^(\d+\D\.\d+)', header_tag.text).group().zfill(2)
 
@@ -163,6 +164,13 @@ class KyHtmlOperations:
                                 nav_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}"
                                 nav_list.append(nav_link)
                                 list_item.contents = nav_list
+                    else:
+                            nav_list = []
+                            nav_link = self.soup.new_tag('a')
+                            nav_link.string = list_item.text
+                            nav_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}"
+                            nav_list.append(nav_link)
+                            list_item.contents = nav_list
 
                 elif re.match(r'^(\d+\D\.\d+)', list_item.text.strip()):
                     chap_num = re.search(r'^([^\.]+)', list_item.text).group().zfill(2)
@@ -284,27 +292,20 @@ class KyHtmlOperations:
         self.create_main_tag()
         self.set_appropriate_tag_name_and_id()
         self.create_ul_tag()
-
         self.create_chap_sec_nav()
 
-        # self.sec_headers()
-        # self.main_tag()
-        # self.ul_tag()
-        # self.chap_sec_nav()
         self.wrap_with_ordered_tag()
-        # self.wrap_with_ordered_list2()
 
-        # self.new_section_head()
         self.write_into_soup()
 
     # create a soup
     def create_soup(self):
-        with open("/home/mis/ky/gov.ky.krs.title.01.html") as fp:
+        with open("/home/mis/ky/gov.ky.krs.title.04.html") as fp:
             self.soup = BeautifulSoup(fp, "lxml")
 
     # write into a soup
     def write_into_soup(self):
-        with open("ky1.html", "w") as file:
+        with open("ky4.html", "w") as file:
             file.write(str(self.soup))
 
     # add css file
