@@ -97,8 +97,6 @@ class KyHtmlOperations:
     def create_ul_tag(self):
         ul_tag = self.soup.new_tag("ul", class_="leaders")
         for list_item in self.soup.find_all("li"):
-
-
             if list_item.find_previous().name == "li":
                 ul_tag.append(list_item)
             else:
@@ -422,8 +420,6 @@ class KyHtmlOperations:
 
             else:
                 new_div_tag.append(div_item)
-
-
 
 
 
