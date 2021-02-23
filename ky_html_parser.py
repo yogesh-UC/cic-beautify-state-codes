@@ -1,15 +1,28 @@
-from bs4 import BeautifulSoup
 import re
 
+from bs4 import BeautifulSoup, Doctype
 
-class KYParseHtml:
+from parser_base import ParserBase
 
-    def __init__(self):
+
+class KYParseHtml(ParserBase):
+
+    def __init__(self, input_file_name):
+        super().__init__()
         self.class_regex = {'ul': '^CHAPTER', 'head2': '^CHAPTER', 'title': '^(TITLE)', 'sec_head': r'^([^\s]+[^\D]+)',
                             'junk': '^(Text)', 'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])', 'head4': '^(NOTES TO DECISIONS)',
                             }
         self.title_id = None
         self.soup = None
+        self.start_parse()
+
+        # create a soup
+    def create_soup(self):
+        with open(f'../transforms/ky/ocky/r{self.release_number}/raw/{self.html_file_name}') as open_file:
+            html_data = open_file.read()
+            self.soup = BeautifulSoup(html_data, features="lxml")
+            self.soup.contents[0].replace_with(Doctype("html"))
+            self.soup.html.attrs['lang'] = 'en'
 
     # extract class names
     def get_class_names(self):
@@ -17,8 +30,9 @@ class KYParseHtml:
             tag_class = self.soup.find(
                 lambda tag: tag.name == 'p' and re.search(self.class_regex.get(key), tag.get_text().strip()) and
                             tag.attrs["class"][0] not in self.class_regex.values())
-            self.class_regex[key] = tag_class.get('class')[0]
-        print(self.class_regex)
+            if tag_class:
+                self.class_regex[key] = tag_class.get('class')[0]
+        # print(self.class_regex)
 
     # clear junk
     def clear_junk(self):
@@ -535,9 +549,11 @@ class KYParseHtml:
 
 
     # main method
-    def start(self):
+    def start_parse(self):
+        self.release_label = f'Release-{self.release_number}'
+        print(self.html_file_name)
         self.create_soup()
-        self.Css_file()
+        self.css_file()
         self.get_class_names()  # assign id to the li
         self.clear_junk()
         self.create_main_tag()
@@ -549,18 +565,13 @@ class KYParseHtml:
         self.wrap_with_ordered_tag1()
         self.write_into_soup()
 
-    # create a soup
-    def create_soup(self):
-        with open("/home/mis/ky/gov.ky.krs.title.01.html") as fp:
-            self.soup = BeautifulSoup(fp, "lxml")
-
     # write into a soup
     def write_into_soup(self):
         with open("ky1.html", "w") as file:
             file.write(str(self.soup))
 
     # add css file
-    def Css_file(self):
+    def css_file(self):
         head = self.soup.find("head")
         style = self.soup.head.find("style")
         style.decompose()
@@ -572,5 +583,5 @@ class KYParseHtml:
         head.append(css_link)
 
 
-KYParseHtml_obj = KYParseHtml()  # create a class object
-KYParseHtml_obj.start()
+# KYParseHtml_obj = KYParseHtml()  # create a class object
+# KYParseHtml_obj.start()
