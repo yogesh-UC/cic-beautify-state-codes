@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import re
 
 
-class KyHtmlOperations:
+class KYParseHtml:
 
     def __init__(self):
         self.class_regex = {'ul': '^CHAPTER', 'head2': '^CHAPTER', 'title': '^(TITLE)', 'sec_head': r'^([^\s]+[^\D]+)',
@@ -572,5 +572,5 @@ class KyHtmlOperations:
         head.append(css_link)
 
 
-KyHtmlOperations_obj = KyHtmlOperations()  # create a class object
-KyHtmlOperations_obj.start()
+KYParseHtml_obj = KYParseHtml()  # create a class object
+KYParseHtml_obj.start()
