@@ -6,7 +6,8 @@ class KyHtmlOperations:
 
     def __init__(self):
         self.class_regex = {'ul': '^CHAPTER', 'head2': '^CHAPTER', 'title': '^(TITLE)', 'sec_head': r'^([^\s]+[^\D]+)',
-                            'junk': '^(Text)', 'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])', 'head4': '^(NOTES TO DECISIONS)'}
+                            'junk': '^(Text)', 'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])', 'head4': '^(NOTES TO DECISIONS)',
+                            }
         self.title_id = None
         self.soup = None
 
@@ -110,7 +111,8 @@ class KyHtmlOperations:
         ul_tag = self.soup.new_tag("ul", class_="leaders")
         for list_item in self.soup.find_all("li"):
             if list_item["class"] == ['p2'] and re.match(r'^CHAPTER',list_item.text):
-                list_item.find_previous("nav").append(list_item)
+                list_item.wrap(ul_tag)
+                list_item.find_previous("nav").append(ul_tag)
             else:
                 if list_item.find_previous().name == "li":
                     ul_tag.append(list_item)
@@ -485,8 +487,51 @@ class KyHtmlOperations:
                 else:
                     ol_tag4.append(tag)
 
+    def create_div_tag(self):
+        new_div_tag = self.soup.new_tag("div")
+        new_div_tag1 = self.soup.new_tag("div")
+        new_div_tag2 = self.soup.new_tag("div")
+        for div_item in self.soup.main.find_all():
+            if div_item.name == "h2":
+                new_div_tag = self.soup.new_tag("div")
+                div_item.wrap(new_div_tag)
+            elif div_item.name == "span":
+                if re.match(r'^(CHAPTER)', div_item.text):
+                    div_item.find_previous().append(div_item)
+            elif div_item.name == "ul":
+                div_item.find_previous().append(div_item)
+            elif div_item.name == "li":
+                if div_item.find_previous("ul") is not None:
+                    div_item.find_previous("ul").append(div_item)
+            elif div_item.name == "h3":
+                new_div_tag1 = self.soup.new_tag("div")
+                div_item.wrap(new_div_tag1)
+                new_div_tag.append(new_div_tag1)
+
+            elif div_item.name == "p" and div_item.get("class") == [self.class_regex["ol"]]:
+                if not re.match(r'^\d+', div_item.text.strip()):
+                    new_div_tag1.append(div_item)
+
+                else:
+                    new_div_tag2.append(div_item)
+
+            elif div_item.name == "h4":
+                new_div_tag2 = self.soup.new_tag("div")
+                div_item.wrap(new_div_tag2)
+                new_div_tag.append(new_div_tag2)
+                new_div_tag1.append(new_div_tag2)
+                # print(div_item)
+                # print(new_div_tag1)
+
+            elif div_item.name == "p" or div_item.name == "i" or div_item.name == "br":
+                new_div_tag2.append(div_item)
+            else:
+                new_div_tag2.append(div_item)
 
 
+    def create_ol_tag(self):
+        for tag in self.soup.find_all("i"):
+            print(tag)
 
 
     # main method
@@ -499,18 +544,19 @@ class KyHtmlOperations:
         self.set_appropriate_tag_name_and_id()
         self.create_ul_tag1()
         self.create_chap_sec_nav()
-        # self.create_div_tag()
-        self.wrap_with_ordered_tag1()
+        self.create_div_tag()
+        # self.create_ol_tag()
+        # self.wrap_with_ordered_tag1()
         self.write_into_soup()
 
     # create a soup
     def create_soup(self):
-        with open("/home/mis/ky/gov.ky.krs.title.02.html") as fp:
+        with open("/home/mis/ky/gov.ky.krs.title.01.html") as fp:
             self.soup = BeautifulSoup(fp, "lxml")
 
     # write into a soup
     def write_into_soup(self):
-        with open("ky2.html", "w") as file:
+        with open("ky1.html", "w") as file:
             file.write(str(self.soup))
 
     # add css file

@@ -327,3 +327,19 @@ def create_div_tag(self):
 
         else:
             new_div_tag.append(div_item)
+
+
+# wrap list items with ul tag and then nav tag
+    def create_ul_tag1(self):
+        ul_tag = self.soup.new_tag("ul", class_="leaders")
+        for list_item in self.soup.find_all("li"):
+            if list_item["class"] == ['p2'] and re.match(r'^CHAPTER',list_item.text):
+                list_item.find_previous("nav").append(list_item)
+            else:
+                if list_item.find_previous().name == "li":
+                    ul_tag.append(list_item)
+                else:
+                    ul_tag = self.soup.new_tag("ul", class_="leaders")
+                    list_item.wrap(ul_tag)
+
+                    ul_tag.wrap(self.soup.new_tag("nav"))
