@@ -382,45 +382,110 @@ class KyHtmlOperations:
                 else:
                     ol_tag4.append(tag)
 
+    def wrap_with_ordered_tag1(self):
+        pattern = re.compile(r'^(\d+)|^([(]\d+[)]|^[(]\D[)])|^(\D\.)')
+        Num_bracket_pattern = re.compile(r'^\(\d+\)')
+        alpha_pattern = re.compile(r'^\(\D+\)')
+        # alp_pattern = re.compile(r'\(\D+\)')
+        num_pattern = re.compile(r'^\d+')
+        num_pattern1 = re.compile(r'^1\.')
+        numAlpha_pattern = re.compile(r'^\(\d+\)\s\(\D+\)')
+        alphanum_pattern = re.compile(r'^\(\D+\)\s(\d)+')
 
-    # create different divs
-    def create_div(self):
-        new_div_tag = self.soup.new_tag("div")
-        for div_item in self.soup.main.find_all():
-            if div_item.name == "h2":
-                new_div_tag = self.soup.new_tag("div")
-                div_item.wrap(new_div_tag)
-            elif div_item.name == "span":
-                if re.match(r'^(CHAPTER)', div_item.text):
-                    div_item.find_previous().append(div_item)
-            elif div_item.name == "li":
-                if div_item.find_previous("ul") is not None:
-                    div_item.find_previous("ul").append(div_item)
-            elif div_item.name == "ul":
-                if div_item.find_previous("nav") is not None:
-                    div_item.find_previous("nav").append(div_item)
-            else:
-                new_div_tag.append(div_item)
+        ol_tag2 = self.soup.new_tag("ol", type="a")
+        ol_tag = self.soup.new_tag("ol")
+        ol_tag3 = self.soup.new_tag("ol")
+        ol_tag1 = self.soup.new_tag("ol")
+        ol_tag4 = self.soup.new_tag("ol", type="a")
+
+        for tag in self.soup.findAll("p", class_=self.class_regex["ol"]):
+            if re.match(pattern, tag.text.strip()):
+                tag.name = "li"
+
+        for tag in self.soup.findAll("li", class_=self.class_regex["ol"]):
+
+            # (1)......
+            if re.match(Num_bracket_pattern, tag.text.strip()):
+                pattern1 = re.findall(r'^\(\d+\)', tag.text.strip())
+                index = re.findall(r'\d+', str(pattern1))
+                strings = [str(integer) for integer in index]
+                a_string = "".join(strings)
+                a_int = int(a_string)
+
+                if a_int > 1:
+                    ol_tag.append(tag)
+                elif a_int == 1:
+                    ol_tag = self.soup.new_tag("ol")
+                    tag.wrap(ol_tag)
+
+            # (a).......
+            pattern_new = re.compile(r'^\(a+\)')
+            if re.match(alpha_pattern, tag.text.strip()):
+                if re.match(pattern_new, tag.text.strip()):
+
+                    ol_tag2 = self.soup.new_tag("ol", type="a")
+                    tag.wrap(ol_tag2)
+                    ol_tag.append(ol_tag2)
+                    tag.find_previous("li").append(ol_tag2)
+
+                else:
+                    ol_tag2.append(tag)
+
+            # (1)(a)............
+            if re.match(numAlpha_pattern, tag.text.strip()):
+                ol_tag2 = self.soup.new_tag("ol", type="a")
+
+                li_tag = self.soup.new_tag("li")
+                li_tag.append(tag.text.strip())
+                ol_tag2.append(li_tag)
+                tag.contents = []
+                tag.append(ol_tag2)
+
+            elif re.match(alpha_pattern, tag.text.strip()):
+                if re.match(Num_bracket_pattern, tag.find_previous().text.strip()):
+                    ol_tag2.append(tag)
+                elif re.match(alpha_pattern, tag.find_previous().text.strip()):
+                    ol_tag2.append(tag)
+                elif re.match(num_pattern, tag.find_previous().text.strip()):
+                    ol_tag2.append(tag)
+
+            # (a)1..............
+            if re.match(alphanum_pattern, tag.text.strip()):
+                ol_tag3 = self.soup.new_tag("ol")
+                li_tag = self.soup.new_tag("li")
+                li_tag.append(tag.text.strip())
+                ol_tag3.append(li_tag)
+                ol_tag2.append(ol_tag3)
+                tag.contents = []
+                tag.append(ol_tag3)
+
+            elif re.match(num_pattern, tag.text.strip()) and re.match(alphanum_pattern,
+                                                                      tag.find_previous().text.strip()):
+                ol_tag3.append(tag)
+
+            # # 1.......
+            if re.match(num_pattern, tag.text.strip()):
+                if re.match(num_pattern1, tag.text.strip()):
+                    ol_tag1 = self.soup.new_tag("ol")
+                    tag.wrap(ol_tag1)
+                    tag.find_previous("li").append(ol_tag1)
+                else:
+
+                    ol_tag1.append(tag)
+
+            # a.......
+            pattern_a = re.compile(r'^(\D\.)')
+            if re.match(pattern_a, tag.text.strip()):
+
+                if re.match(r'^(a\.)', tag.text.strip()):
+                    ol_tag4 = self.soup.new_tag("ol", type="a")
+                    tag.wrap(ol_tag4)
+                    tag.find_previous("li").append(ol_tag4)
+
+                else:
+                    ol_tag4.append(tag)
 
 
-    def create_div_tag(self):
-        new_div_tag = self.soup.new_tag("div")
-        new_div_tag2 = self.soup.new_tag("div")
-        for div_item in self.soup.main.find_all():
-            if div_item.name == "h2":
-                new_div_tag = self.soup.new_tag("div")
-                div_item.wrap(new_div_tag)
-            elif div_item.name == "span":
-                if re.match(r'^(CHAPTER)', div_item.text):
-                    div_item.find_previous().append(div_item)
-            elif div_item.name == "ul":
-                div_item.find_previous().append(div_item)
-            elif div_item.name == "li":
-                if div_item.find_previous("ul") is not None:
-                    div_item.find_previous("ul").append(div_item)
-
-            else:
-                new_div_tag.append(div_item)
 
 
 
@@ -432,10 +497,10 @@ class KyHtmlOperations:
         self.clear_junk()
         self.create_main_tag()
         self.set_appropriate_tag_name_and_id()
-        self.create_ul_tag()
+        self.create_ul_tag1()
         self.create_chap_sec_nav()
         # self.create_div_tag()
-        self.wrap_with_ordered_tag()
+        self.wrap_with_ordered_tag1()
         self.write_into_soup()
 
     # create a soup

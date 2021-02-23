@@ -287,3 +287,43 @@ class KyHtmlOperations:
 
 KyHtmlOperations_obj = KyHtmlOperations()  # create a class object
 KyHtmlOperations_obj.start()
+
+
+# create different divs
+def create_div(self):
+    new_div_tag = self.soup.new_tag("div")
+    for div_item in self.soup.main.find_all():
+        if div_item.name == "h2":
+            new_div_tag = self.soup.new_tag("div")
+            div_item.wrap(new_div_tag)
+        elif div_item.name == "span":
+            if re.match(r'^(CHAPTER)', div_item.text):
+                div_item.find_previous().append(div_item)
+        elif div_item.name == "li":
+            if div_item.find_previous("ul") is not None:
+                div_item.find_previous("ul").append(div_item)
+        elif div_item.name == "ul":
+            if div_item.find_previous("nav") is not None:
+                div_item.find_previous("nav").append(div_item)
+        else:
+            new_div_tag.append(div_item)
+
+
+def create_div_tag(self):
+    new_div_tag = self.soup.new_tag("div")
+    new_div_tag2 = self.soup.new_tag("div")
+    for div_item in self.soup.main.find_all():
+        if div_item.name == "h2":
+            new_div_tag = self.soup.new_tag("div")
+            div_item.wrap(new_div_tag)
+        elif div_item.name == "span":
+            if re.match(r'^(CHAPTER)', div_item.text):
+                div_item.find_previous().append(div_item)
+        elif div_item.name == "ul":
+            div_item.find_previous().append(div_item)
+        elif div_item.name == "li":
+            if div_item.find_previous("ul") is not None:
+                div_item.find_previous("ul").append(div_item)
+
+        else:
+            new_div_tag.append(div_item)
