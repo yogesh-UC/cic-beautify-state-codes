@@ -20,7 +20,8 @@ class ParserBase:
 
     def start(self, state_key):
         self.state_key = state_key
-        if input_file_name := os.environ.get('input_file_name'):
+        if os.environ.get('input_file_name'):
+            input_file_name = os.environ.get('input_file_name')
             """
                     - if the input_file_name args is passed to the program
                       then start_parse method of html_parser and pass pass the input file name
@@ -36,7 +37,8 @@ class ParserBase:
                   """
             self.cpu_count = multiprocessing.cpu_count()
             print(self.cpu_count)
-            input_files_list = listdir(f'../transforms/{state_key.lower()}/oc{state_key.lower()}/r{self.release_number}/raw/')
+            input_files_list = listdir(
+                f'../transforms/{state_key.lower()}/oc{state_key.lower()}/r{self.release_number}/raw/')
             self.run_with_multiprocessing_pool(input_files_list, state_key)
 
     def run_with_multiprocessing_pool(self, files_list, state_key):
