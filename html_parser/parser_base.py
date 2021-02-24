@@ -38,7 +38,7 @@ class ParserBase:
             self.cpu_count = multiprocessing.cpu_count()
             print(self.cpu_count)
             input_files_list = listdir(
-                f'../transforms/{state_key.lower()}/oc{state_key.lower()}/r{self.release_number}/raw/')
+                f'transforms/{state_key.lower()}/oc{state_key.lower()}/r{self.release_number}/raw/')
             self.run_with_multiprocessing_pool(input_files_list, state_key)
 
     def run_with_multiprocessing_pool(self, files_list, state_key):

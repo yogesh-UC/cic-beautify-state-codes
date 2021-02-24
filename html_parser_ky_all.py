@@ -454,7 +454,7 @@ class KYParseHtml(ParserBase):
             elif header_tag.get("class") == [self.class_regex["ul"]]:
                 header_tag.name = "li"
 
-            elif header_tag.get('class') == [self.class_regex["head4"]]:
+            elif header_tag.get('class') == [self.class_regex["ol"]]:
                 header_tag.name = "h4"
 
     # wrap list items with ul tag

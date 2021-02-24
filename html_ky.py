@@ -7,7 +7,7 @@ class KyHtmlOperations:
 
     def __init__(self):
         self.class_regex = {'ul': '^CHAPTER', 'head2': '^CHAPTER', 'title': '^(TITLE)', 'sec_head': r'^([^\s]+[^\D]+)',
-                            'junk': '^(Text)', 'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])', 'head4': '^(NOTES TO DECISIONS)',
+                            'junk': '^(Text)', 'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])', 'head4': r'^NOTES TO DECISIONS',
                             }
         self.title_id = None
         self.soup = None
@@ -71,9 +71,21 @@ class KyHtmlOperations:
                             header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
                     else:
                         header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
-                else:
+                elif re.match(r'^(\d+\D\.\d+)', header_tag.text):
                     chap_num = re.search(r'^([^\.]+)', header_tag.text).group().zfill(2)
                     sec_num = re.search(r'^(\d+\D\.\d+)', header_tag.text).group().zfill(2)
+                    header_pattern = re.search(r'^(\d+\D\.\d+)', header_tag.text.strip()).group()
+                    if header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"]) is not None:
+                        prev_tag = header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"])
+                        if header_pattern in prev_tag.text:
+                            count = 0
+                            prev_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
+                            header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
+                        else:
+                            header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
+                elif re.match(r'^(\d+\D\.\d+\-\d+)', header_tag.text):
+                    chap_num = re.search(r'^([^\.]+)', header_tag.text).group().zfill(2)
+                    sec_num = re.search(r'^(\d+\D\.\d+\-\d+)', header_tag.text).group().zfill(2)
                     header_pattern = re.search(r'^(\d+\D\.\d+)', header_tag.text.strip()).group()
                     if header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"]) is not None:
                         prev_tag = header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"])
@@ -87,8 +99,44 @@ class KyHtmlOperations:
             elif header_tag.get("class") == [self.class_regex["ul"]]:
                 header_tag.name = "li"
 
-            elif header_tag.get('class') == [self.class_regex["head4"]]:
+            elif header_tag.get('class') == [self.class_regex["ol"]]:
                 header_tag.name = "h4"
+
+
+                prev_header_tag = header_tag.find_previous("h3")
+                sec_pattern = re.compile(r'^(\d+\.\d+)')
+                if re.match(sec_pattern, prev_header_tag.text.strip()):
+
+                    chap_num = re.search(r'^([^\.]+)', prev_header_tag.text).group().zfill(2)
+                    sec_num = re.search(r'^(\d+\.\d+)', prev_header_tag.text).group().zfill(2)
+                    header_id = re.sub(r'\s+', '', header_tag.get_text()).lower()
+                    header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{header_id}"
+
+
+
+                elif re.match(r'^(\d+\D\.\d+)', prev_header_tag.text):
+                    chap_num = re.search(r'^([^\.]+)', prev_header_tag.text).group().zfill(2)
+                    sec_num = re.search(r'^(\d+\D\.\d+)', prev_header_tag.text).group().zfill(2)
+                    header_id = re.sub(r'\s+', '', header_tag.get_text()).lower()
+                    header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{header_id}"
+
+
+                elif re.match(r'^(\d+\D\.\d+\-\d+)', prev_header_tag.text):
+
+                    chap_num = re.search(r'^([^\.]+)', prev_header_tag.text).group().zfill(2)
+                    sec_num = re.search(r'^(\d+\D\.\d+\-\d+)', prev_header_tag.text).group().zfill(2)
+                    header_id = re.sub(r'\s+', '', header_tag.get_text()).lower()
+                    header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{header_id}"
+
+
+
+
+
+
+
+
+
+
 
     # replace tags with li
     def convert_li(self):
