@@ -43,7 +43,7 @@ class KYParseHtml(ParserBase):
 
     def write_soup_to_file(self):
         soup_str = str(self.soup.prettify(formatter=None))
-        with open(f"../transforms/ga/ocga/r{self.release_number}/{self.html_file_name}", "w") as file:
+        with open(f"../transforms/ky/ocky/r{self.release_number}/{self.html_file_name}", "w") as file:
             file.write(soup_str)
 
     def start_parse(self):

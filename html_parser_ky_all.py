@@ -381,7 +381,7 @@ class KYParseHtml(ParserBase):
                             tag.attrs["class"][0] not in self.class_regex.values())
             if tag_class:
                 self.class_regex[key] = tag_class.get('class')[0]
-        # print(self.class_regex)
+        print(self.class_regex)
 
     # clear junk
     def clear_junk(self):
