@@ -8,13 +8,13 @@ class KYParseHtml(ParserBase):
     def __init__(self, input_file_name):
         super().__init__()
         self.class_regex = {'ul': '^CHAPTER', 'head2': '^CHAPTER', 'title': '^(TITLE)', 'sec_head': r'^([^\s]+[^\D]+)',
-                            'junk': '^(Text)', 'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])', 'head4': '^(NOTES TO DECISIONS)',
-                            }
+                            'junk': '^(Text)', 'ol': r'^(\(1\))', 'head4': '^(NOTES TO DECISIONS)'}
         self.title_id = None
         self.soup = None
         self.junk_tag_class = ['Apple-converted-space', 'Apple-tab-span']
         # self.junk_space_tag_class = ['Apple-converted-space']
         # self.junk_tab_tag_class = ['Apple-tab-span']
+        #  'ol': r'^(\d+)|^([(]\d+[)]|^[(]\D[)])'
         self.html_file_name = input_file_name
         self.start_parse()
 
@@ -61,7 +61,7 @@ class KYParseHtml(ParserBase):
                 self.title_id = re.sub(r'\s+', '', title_id1)
 
             elif header_tag.get("class") == [self.class_regex["head2"]]:
-                if re.search("^(CHAPTER)", header_tag.text):
+                if re.search("^(CHAPTER)|^(Chapter)", header_tag.text):
                     chap_num = re.search(r'(\s+[^\s]+)', header_tag.text.strip()).group(1)
                     chap_nums = re.sub(r'\s+', '', chap_num).zfill(2)
                     header_tag.name = "h2"
@@ -149,7 +149,8 @@ class KYParseHtml(ParserBase):
         for main_tag in self.soup.find_all("p"):
             if re.match(r'^(TITLE)', main_tag.text.strip()):
                 continue
-            elif re.match(r'^CHAPTER', main_tag.text.strip()) and main_tag.get("class") == [self.class_regex["ul"]]:
+            elif re.match(r'^CHAPTER|^Chapter', main_tag.text.strip()) and main_tag.get("class") == [
+                self.class_regex["ul"]]:
                 continue
             elif main_tag == first_chapter_header:
                 main_tag.wrap(section_nav_tag)
@@ -162,7 +163,7 @@ class KYParseHtml(ParserBase):
     def create_chap_sec_nav(self):
         count = 0
         for list_item in self.soup.find_all("li"):
-            if re.match(r'^(CHAPTER)', list_item.text.strip()):
+            if re.match(r'^(CHAPTER)|^(Chapter)', list_item.text.strip()):
                 chap_nav_nums = re.search(r'(\s+[^\s]+)', list_item.text.strip())
                 chap_nums = re.search(r'(\s+[^\s]+)', list_item.text).group(0)
                 chap_num = re.sub(r'\s+', '', chap_nums).zfill(2)
@@ -174,9 +175,10 @@ class KYParseHtml(ParserBase):
                     nav_list.append(nav_link)
                     list_item.contents = nav_list
             else:
+
                 if re.match(r'^(\d+\.\d+)', list_item.text.strip()):
-                    chap_num = re.search(r'^([^\.]+)', list_item.text).group().zfill(2)
-                    sec_num = re.search(r'^(\d+\.\d+)', list_item.text).group(1).zfill(2)
+                    chap_num = re.search(r'^([^\.]+)', list_item.text.strip()).group().zfill(2)
+                    sec_num = re.search(r'^(\d+\.\d+)', list_item.text.strip()).group(1).zfill(2)
                     sec_pattern = re.search(r'^(\d+\.\d+)', list_item.text.strip()).group()
                     sec_next_tag = list_item.find_next('li')
                     sec_prev_tag = list_item.find_previous("li")
@@ -215,8 +217,8 @@ class KYParseHtml(ParserBase):
                         list_item.contents = nav_list
 
                 elif re.match(r'^(\d+\D\.\d+)', list_item.text.strip()):
-                    chap_num = re.search(r'^([^\.]+)', list_item.text).group().zfill(2)
-                    sec_num = re.search(r'^(\d+\D\.\d+)', list_item.text).group(1).zfill(2)
+                    chap_num = re.search(r'^([^\.]+)', list_item.text.strip()).group().zfill(2)
+                    sec_num = re.search(r'^(\d+\D\.\d+)', list_item.text.strip()).group().zfill(2)
                     nav_list = []
                     nav_link = self.soup.new_tag('a')
                     nav_link.string = list_item.text
@@ -226,7 +228,7 @@ class KYParseHtml(ParserBase):
 
                 else:
                     chapter_header = list_item.find_previous("h2")
-                    chap_nums = re.search(r'(\s+[^\s]+)', chapter_header.text).group(0)
+                    chap_nums = re.search(r'(\s+[^\s]+)', chapter_header.text.strip()).group(0)
                     chap_num = re.sub(r'\s+', '', chap_nums).zfill(2)
                     sec_id = re.sub(r'\s+', '', list_item.get_text()).lower()
                     new_list = []
@@ -236,9 +238,23 @@ class KYParseHtml(ParserBase):
                     new_list.append(new_link)
                     list_item.contents = new_list
 
+    # add links to notes to decision nav
+    def create_link_to_notetodecision_nav(self):
+        for p_tag in self.soup.find_all(class_=self.class_regex["ol"]):
+            if re.match(r'^(\d+\.)', p_tag.text.strip()) and p_tag.find_previous("h4") is not None and p_tag.find_previous("h4").text.strip() == 'NOTES TO DECISIONS':
+                chap_num = re.search(r'^([^\.]+)', p_tag.find_previous("h3").text.strip()).group().zfill(2)
+                sec_num = re.search(r'^(\d+\D*\.\d+)', p_tag.find_previous("h3").text.strip()).group()
+                sub_sec_id = re.sub(r'\s+', '', p_tag.get_text()).lower()
+                nav_list = []
+                nav_link = self.soup.new_tag('a')
+                nav_link.string = p_tag.text
+                nav_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{sub_sec_id}"
+                nav_list.append(nav_link)
+                p_tag.contents = nav_list
+
     def write_soup_to_file(self):
         soup_str = str(self.soup.prettify(formatter=None))
-        with open(f"transforms/ky/ocky/r{self.release_number}/{self.html_file_name}", "w") as file:
+        with open(f"../cic-code-ky/transforms/ky/ocky/r{self.release_number}/{self.html_file_name}", "w") as file:
             file.write(soup_str)
 
     # add css file
@@ -266,5 +282,6 @@ class KYParseHtml(ParserBase):
         self.set_appropriate_tag_name_and_id()
         self.create_ul_tag()
         self.create_chap_sec_nav()
+        self.create_link_to_notetodecision_nav()
         self.write_soup_to_file()
         print(datetime.now() - start_time)
