@@ -176,7 +176,7 @@ class KYParseHtml(ParserBase):
             if list_item.find_previous().name == "li":
                 ul_tag.append(list_item)
             else:
-                ul_tag = self.soup.new_tag("ul", class_="leaders")
+                ul_tag = self.soup.new_tag("ul",  **{"class":"leaders"})
                 list_item.wrap(ul_tag)
         print("ul tag is created")
 
@@ -266,7 +266,7 @@ class KYParseHtml(ParserBase):
 
     # create ol tag for note to decision nav
     def create_ol_tag(self):
-        new_ol_tag = self.soup.new_tag("ul")
+        new_ol_tag = self.soup.new_tag("ul", **{"class":"leaders"})
         new_nav_tag = self.soup.new_tag("nav")
 
         for ol_tag in self.soup.find_all(class_=self.class_regex["ol"]):
@@ -274,7 +274,7 @@ class KYParseHtml(ParserBase):
                     "h4") is not None and ol_tag.find_previous("h4").text.strip() == 'NOTES TO DECISIONS':
                 ol_tag.name = "li"
                 if re.match(r'^(1\.)', ol_tag.text.strip()):
-                    new_ol_tag = self.soup.new_tag("ul")
+                    new_ol_tag = self.soup.new_tag("ul", **{"class":"leaders"})
                     ol_tag.wrap(new_ol_tag)
                     new_ol_tag.wrap(self.soup.new_tag("nav"))
 
@@ -385,6 +385,17 @@ class KYParseHtml(ParserBase):
                 tag.contents = []
                 tag.append(ol_tag4)
 
+            # (a) 1.
+            if re.match(num_pattern, tag.text.strip()):
+                if re.match(r'\(\D\)\s*\d\.', tag.find_previous().text.strip()):
+                    print(tag)
+                    ol_tag3 = self.soup.new_tag("ol")
+                    tag.wrap(ol_tag3)
+                    ol_tag.append(ol_tag3)
+                    tag.find_previous("li").append(ol_tag3)
+                elif re.match(num_pattern, tag.find_previous().text.strip()):
+
+                    tag.find_previous("li").append(tag)
 
 
             # # (a) 1.
