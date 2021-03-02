@@ -38,7 +38,7 @@ class KYParseHtml(ParserBase):
         for junk_tag in self.soup.find_all():
             if junk_tag.get("class") == ['Apple-converted-space'] or junk_tag.name == "i":
                 junk_tag.unwrap()
-            elif junk_tag.get("class") == [self.junk_tag_class] or junk_tag.name == "br":
+            elif junk_tag.get("class") == ['Apple-tab-span'] or junk_tag.name == "br":
                 junk_tag.decompose()
 
         [text_junk.decompose() for text_junk in self.soup.find_all("p", class_=self.class_regex["junk"])]
@@ -100,8 +100,10 @@ class KYParseHtml(ParserBase):
                         prev_tag = header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"])
                         if header_pattern in prev_tag.text.split()[0]:
                             count = 0
-                            prev_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
-                            header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
+                            count = count + 1
+                            prev_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count}"
+                            count = count + 1
+                            header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count}"
                         else:
                             header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
 
@@ -114,8 +116,10 @@ class KYParseHtml(ParserBase):
                         prev_tag = header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"])
                         if header_pattern in prev_tag.text.split()[0]:
                             count = 0
-                            prev_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
-                            header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
+                            count = count + 1
+                            prev_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count}"
+                            count = count + 1
+                            header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}-{count}"
                         else:
                             header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
 
@@ -255,14 +259,16 @@ class KYParseHtml(ParserBase):
                         if sec_pattern in sec_next_tag.text:
                             list_link = self.soup.new_tag('a')
                             list_link.string = list_item.text
-                            list_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count + 1}"
+                            count = count + 1
+                            list_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count}"
                             list_item.contents = [list_link]
 
                         elif sec_prev_tag_text:
                             if sec_pattern in sec_prev_tag.a.text:
                                 list_link = self.soup.new_tag('a')
                                 list_link.string = list_item.text
-                                list_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count + 2}"
+                                count + 2
+                                list_link["href"] = f"#t{self.title_id}c{chap_num}s{sec_num}-{count}"
                                 list_item.contents = [list_link]
 
                             else:
@@ -295,14 +301,20 @@ class KYParseHtml(ParserBase):
                     list_item.contents = [new_link]
 
     # create ol tag for note to decision nav
-    def create_ul_tag_to_notes_to_decision(self):
+    def create_ul_tag_to_notes_to_decision1(self):
         new_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
         new_nav_tag = self.soup.new_tag("nav")
+        child_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
+        grandchild_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
+        super_grandchild_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
 
         for note_tag in self.soup.find_all(class_=self.class_regex["ol"]):
             if re.match(r'^(\d+\.)', note_tag.text.strip()) and note_tag.find_previous(
                     "h4") is not None and note_tag.find_previous("h4").text.strip() == 'NOTES TO DECISIONS':
                 note_tag.name = "li"
+
+            # parent
+            if re.match(r'^(\d+\.\s*[a-zA-Z]+)', note_tag.text.strip()):
                 if re.match(r'^(1\.)', note_tag.text.strip()):
                     new_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
                     note_tag.wrap(new_ul_tag)
@@ -311,30 +323,49 @@ class KYParseHtml(ParserBase):
                 else:
                     new_ul_tag.append(note_tag)
 
-                if re.match(r'^(\d+\.\s*—\s*[a-zA-Z]+)', note_tag.text.strip()):
-                    if re.match(r'^(\d+\.\s*[a-zA-Z]+)', note_tag.find_previous().text.strip()):
-                        child_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
-                        note_tag.wrap(child_ul_tag)
-                        note_tag.find_previous("li").append(note_tag)
-                    else:
-                        print(note_tag)
+            # child
+            if re.match(r'^(\d+\.\s*—\s*[a-zA-Z]+)', note_tag.text.strip()) and note_tag.name == "li":
+                if re.match(r'^(\d+\.\s*[a-zA-Z]+)', note_tag.find_previous().text.strip()):
+                    child_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
+                    note_tag.wrap(child_ul_tag)
+                    note_tag.find_previous("li").append(child_ul_tag)
+                    new_ul_tag.append(child_ul_tag)
+                else:
+                    child_ul_tag.append(note_tag)
 
-                    # else:
-                    #     print(note_tag)
-                    # child_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
-                    # note_tag.wrap(child_ol_tag)
-                    # new_ol_tag.wrap(self.soup.new_tag("nav"))
+            # grand child
+            if re.match(r'^(\d+\.\s*—\s*—\s*[a-zA-Z]+)', note_tag.text.strip()):
+                if re.match(r'^(\d+\.\s*—\s*—\s*[a-zA-Z]+)', note_tag.find_previous().text.strip()):
+                    grandchild_ul_tag.append(note_tag)
+                else:
+
+                    grandchild_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
+                    note_tag.wrap(grandchild_ul_tag)
+                    child_ul_tag.append(grandchild_ul_tag)
+                    # note_tag.find_previous("li").append(grandchild_ul_tag)
+
+            # super grand child
+            if re.match(r'^(\d+\.\s*—\s*—\s*—\s*[a-zA-Z]+)', note_tag.text.strip()):
+                if re.match(r'^(\d+\.\s*—\s*—\s*—\s*[a-zA-Z]+)', note_tag.find_previous().text.strip()):
+                    super_grandchild_ul_tag.append(note_tag)
+                else:
+                    # print(note_tag)
+                    super_grandchild_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
+                    note_tag.wrap(super_grandchild_ul_tag)
+                    grandchild_ul_tag.append(super_grandchild_ul_tag)
+
+                    # note_tag.find_previous("li").append(grandchild_ul_tag)
 
             if re.match(r'^(\d+\.)', note_tag.text.strip()) and note_tag.find_previous(
                     "p") is not None and note_tag.find_previous("p").text.strip() == 'Analysis':
                 note_tag.name = "li"
 
                 if note_tag.find_previous().text.strip() == 'Analysis':
-                    new_ol_tag = self.soup.new_tag("ul", **{"class": "leaders"})
-                    note_tag.wrap(new_ol_tag)
-                    new_ol_tag.wrap(self.soup.new_tag("nav"))
+                    new_ul_tag = self.soup.new_tag("ul", **{"class": "leaders"})
+                    note_tag.wrap(new_ul_tag)
+                    new_ul_tag.wrap(self.soup.new_tag("nav"))
                 else:
-                    new_ol_tag.append(note_tag)
+                    new_ul_tag.append(note_tag)
 
     # add links to notes to decision nav
     def create_link_to_notetodecision_nav(self):
@@ -384,7 +415,7 @@ class KYParseHtml(ParserBase):
                     p_tag.contents = [child_nav_link]
 
     # wrapping with ol tag
-    def wrap_with_ordered_tag(self):
+    def wrap_with_ordered_tag1(self):
         pattern = re.compile(r'^(\d+)|^([(]\d+[)]|^[(]\D[)])|^(\D\.)')
         Num_bracket_pattern = re.compile(r'^\(\d+\)')
         alpha_pattern = re.compile(r'^\(\D+\)')
@@ -524,10 +555,9 @@ class KYParseHtml(ParserBase):
         self.set_appropriate_tag_name_and_id()
         self.create_ul_tag()
         self.create_chap_sec_nav()
-
-        self.create_ul_tag_to_notes_to_decision()
+        self.create_ul_tag_to_notes_to_decision1()
+        # self.wrap_with_ordered_tag1()
         self.create_link_to_notetodecision_nav()
 
-        # self.wrap_with_ordered_tag()
         self.write_soup_to_file()
         print(datetime.now() - start_time)
