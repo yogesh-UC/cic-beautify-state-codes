@@ -15,7 +15,6 @@ class KYParseHtml(ParserBase):
         self.html_file_name = input_file_name
         self.start_parse()
 
-
     def create_page_soup(self):
 
         with open(f'transforms/ky/ocky/r{self.release_number}/raw/{self.html_file_name}') as open_file:
@@ -654,8 +653,6 @@ class KYParseHtml(ParserBase):
                 tag.contents = []
                 tag.append(ol_tag2)
 
-
-
             # (4)(a)1.
             if re.match(r'\(\d+\)\s*\(\D\)\s*\d\.', tag.text.strip()):
                 ol_tag4 = self.soup.new_tag("ol")
@@ -670,12 +667,9 @@ class KYParseHtml(ParserBase):
                 prev_header_id = f"{prev_id}{tag_id1}"
                 main_olcount = 2
 
-
                 ol_tag4.append(inner_li_tag)
                 tag.insert(1, ol_tag4)
                 ol_tag4.find_previous().string.replace_with(ol_tag4)
-
-
 
             # a
             if re.match(r'\D\.', tag.text.strip()):
@@ -693,7 +687,7 @@ class KYParseHtml(ParserBase):
                 tag_id = re.search(r'^(?P<id>\D+)\.', tag.text.strip()).group('id')
                 tag["id"] = f"{prev_header_id}{tag_id}"
 
-             # (a) 1.
+            # (a) 1.
             if re.match(alphanum_pattern, tag.text.strip()):
                 ol_tag5 = self.soup.new_tag("ol")
                 li_tag = self.soup.new_tag("li")
@@ -712,12 +706,8 @@ class KYParseHtml(ParserBase):
                 tag.contents = []
                 tag.append(ol_tag5)
 
-
-
             # elif re.match(num_pattern, tag.text.strip()):
             #     tag.find_previous("li").append(tag)
-
-
 
             # 1. and previous (1)(a)
             if re.match(num_pattern, tag.text.strip()):
@@ -737,7 +727,7 @@ class KYParseHtml(ParserBase):
                 tag["id"] = f"{prev_header_id}{main_olcount}"
                 main_olcount += 1
 
-    #create div tags
+    # create div tags
     def create_and_wrap_with_div_tag(self):
         self.soup = BeautifulSoup(self.soup.prettify(formatter=None), features='lxml')
         for header in self.soup.findAll('h2'):
@@ -805,65 +795,157 @@ class KYParseHtml(ParserBase):
 
         print('wrapped div tags')
 
+    def convert_roman_to_digit(self,roman):
+        value = {'M': 1000, 'D': 500, 'C': 100, 'L': 50, 'X': 10, 'V': 5, 'I': 1}
+        ans = 0
+        n = len(roman)
+        for i in range(n - 1, -1, -1):
+            if value[roman[i]] >= p:
+                ans += value[roman[i]]
+            else:
+                ans -= value[roman[i]]
+            p = value[roman[i]]
+
+        return ans
 
 
-    # citation
-    def add_citation_link(self):
+
+    # add citation
+    def add_citation(self):
+
+        # title_dict = {"I01": ['1', '2', '3'], "II02": ['5', '6', '6A', '7', '7A', '7B', '8'],
+        #               "III03": ['11', '11A', '12', '13', '13A', '13B', '14', '14A', '15', '15A', '16', '17',
+        #                         '18', '18A', '19'], "IV04" : ['21','21A','22','22A', '23', '23A','24','24A',
+        #                         '25','26','26A','27', '27A', '28','29','29A','30','30A','31','31A','32','34'],
+        #
+        #               }
+        #
+        # VI6 = ['41','42','43','44','45','45A','46','47','48','49']
+
+        # chapter_list = []
+        # for chap_tag in self.soup.find_all(class_=self.class_regex["ul"]):
+        #     if re.match(r'^(CHAPTER)', chap_tag.text.strip()):
+        #         chap_list = re.search(r'^(CHAPTER\s*(?P<chap_num>\d+))', chap_tag.text.strip()).group("chap_num")
+        #         chapter_list = chapter_list + [chap_list]
+        #
+        # cite_p_tags = []
+        # for tag in self.soup.findAll(lambda tag: re.search(r'KRS\s*\d+\.\d+',
+        #                                                    tag.get_text()) and tag.name == 'p'
+        #                                          and tag not in cite_p_tags):
+        #
+        #     cite_p_tags.append(tag)
+        #     text = str(tag)
+        #
+        #     for match in set(
+        #             x for x in re.findall(r'\b(\d+?\w?\.\d+)', tag.get_text())):
+        #
+        #         inside_text = re.sub(r'<p\sclass="\w\d+">|</p>|<b>|</b>', '', text, re.DOTALL)
+        #
+        #         tag.clear()
+        #         chap_num = re.search(r'(?P<chap>\d+)\.\d+', match.strip()).group("chap")
+        #         sec_num = re.search(r'(\d+\.\d+)', match.strip()).group().zfill(2)
+        #         target = "_self"
+        #
+        #         if chap_num in chapter_list:
+        #             tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}'
+        #
+        #         else:
+        #             tag_id = f'gov.ky.code.title.{self.title_id}.html#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}'
+        #             target = "_blank"
+        #
+        #         text = re.sub(fr'\s{re.escape(match)}',
+        #                       f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
+        #                       inside_text, re.I)
+        #         tag.append(text)
+
+    # ------------------------------------------------------------------------------------------------------------
+
+        title_dict = {['1', '2', '3']: "I01"}
+
+
         chapter_list = []
         for chap_tag in self.soup.find_all(class_=self.class_regex["ul"]):
-            if re.match(r'^(CHAPTER)', chap_tag.a.text.strip()):
-                chap_list = re.search(r'^(CHAPTER\s*(?P<chap_num>\d+))', chap_tag.a.text.strip()).group("chap_num")
+            if re.match(r'^(CHAPTER)', chap_tag.text.strip()):
+                chap_list = re.search(r'^(CHAPTER\s*(?P<chap_num>\d+))', chap_tag.text.strip()).group("chap_num")
                 chapter_list = chapter_list + [chap_list]
 
-        # print(chapter_list)
+
+        cite_p_tags = []
+        titleid = ""
+        for tag in self.soup.findAll(lambda tag: re.search(r"KRS\s*\d+\.\d+|(KRS Chapter \d+)|(KRS Title \D+, Chapter \D+?\,)|(KRS \d+?\w?\.\d+\s+?\(\d\)+?)",
+                                                         tag.get_text().strip()) and tag.name == 'p'
+                                                 and tag not in cite_p_tags):
 
 
-        cite_pattern = re.compile(r'KRS\s*\d+\.\d+')
-        cite_link = None
-        for tag in self.soup.find_all("p"):
-            if re.search(cite_pattern, tag.text.strip()):
-                # tag_text = re.findall(cite_pattern, tag.text.strip())
-                # chap_num = re.search(r'(?P<chap>\d+)\.\d+', tag.text.strip()).group("chap")
-                # chapter_num = chap_num.zfill(2)
-                # sec_num = re.search(r'(\d+\.\d+)', tag.text.strip()).group().zfill(2)
+            cite_p_tags.append(tag)
+            text = str(tag)
 
-                text = re.search(r'^(?P<text1>[^(\d+\.\d+)]+)\s*((\d+\.\d+))(?P<text2>\s*.+\.*) ', tag.text.strip())
-
-                if text:
-                    txt1  = text.group("text1")
-                    txt2 = text.group("text2")
-                    tag_text = re.findall(cite_pattern, tag.text.strip())
-                    chap_num = re.search(r'(?P<chap>\d+)\.\d+', tag.text.strip()).group("chap")
-                    chapter_num = chap_num.zfill(2)
-                    sec_num = re.search(r'(\d+\.\d+)', tag.text.strip()).group().zfill(2)
-
+            for match in set(
+                    x[0] for x in re.findall(r'((\d+\.\d+)|(Chapter \d+)|(Title\s+?\D+\,\s+?Chapter\s+?\D+?\,)|(\d+?\w?\.\d+\s+?\(\d\)+?))', tag.get_text())):
+                inside_text = re.sub(r'<p\sclass="\w\d+">|</p>|<b>|</b>', '', text, re.DOTALL)
+                # tag.clear()
+                if re.match(r'(\d+(\D+)?\.\d+)', match.strip()):
+                    chap_num = re.search(r'(?P<chap>\d+(\D+)?)\.\d+', match.strip()).group("chap")
+                    sec_num = re.search(r'(\d+(\D+)?\.\d+)', match.strip()).group().zfill(2)
                     if chap_num in chapter_list:
-                        cite_link = self.soup.new_tag("a")
-                        cite_link.string = sec_num
-                        cite_link["target"] = "_self"
-                        cite_link["href"] = f"#t{self.title_id}c{chapter_num}s{sec_num}"
-
-                        cite_text = f"{txt1}{cite_link}{txt2}"
-                        # if tag.string:
-                        #     tag.string.replace_with(cite_text)
+                        tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}'
+                        target = "_self"
+                    else:
+                        tag_id = f'gov.ky.code.title.{titleid}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}'
+                        target = "_blank"
 
 
+                if re.match(r'(Chapter \d+)', match.strip()):
+                    chap_num = re.search(r'Chapter (?P<chap>\d+)', match.strip()).group("chap")
+                    if chap_num in chapter_list:
+                        tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}'
+                        target = "_self"
+                    else:
+                        tag_id = f'gov.ky.code.title.{titleid}.html#t{titleid}c{chap_num.zfill(2)}'
+                        target = "_blank"
+
+
+                if re.match(r'(Title\s+?(\D+|\d+)\,\s+?Chapter\s+?(\D+|\d+)?\,)', match.strip()):
+
+                    tag_id = re.search(r'(Title\s+?(?P<tid>\D+|\d+)\,\s+?Chapter\s+?(?P<cid>\D+|\d+)?\,)', match.strip())
+
+                    title_id = tag_id.group("tid")
+                    chapter = tag_id.group("cid")
+
+                    if chapter.isalpha():
+                        chap_num = self.convert_roman_to_digit(chapter)
+                    else:
+                        chap_num = chapter
+
+                    title = self.convert_roman_to_digit(title_id)
+
+                    if str(chap_num) in chapter_list:
+                        tag_id = f'#t{self.title_id}c{chap_num:02}'
+                        target = "_self"
+                    else:
+                        tag_id = f'gov.ky.code.title.{title}.html#t{titleid}c{chap_num:02}'
+                        target = "_blank"
+
+
+                if re.match(r'(\d+?\D?\.\d+\s+?\(\d\)+?)', match.strip()):
+                    chap_num = re.search(r'((?P<chap>\d+?\D?)\.\d+\s+?\(\d\)+?)', match.strip()).group("chap")
+                    sec_num = re.search(r'(\d+?\D?\.\d+\s+?)', match.strip()).group()
+                    ol_num = re.search()
+                    print(chap_num)
+                    print(sec_num)
 
 
 
 
 
-                # cite_link["href"] = f"#t{self.title_id}c{chapter_num}s{sec_num}"
-
-                # title_dict = {"title1": ['1', '2', '3'], "title2": ['5', '6', '6A', '7', '7A', '7B', '8'],
-                #               "title3": ['11', '11A', '12', '13', '13A', '13B', '14', '14A', '15', '15A', '16', '17',
-                #                         '18', '18A', '19'], "title4" : ['21','21A','22','22A', '23', '23A','24','24A',
-                #                         '25','26','26A','27', '27A', '28','29','29A','30','30A','31','31A','32','34'],
-                #               }
 
 
+                text = re.sub(fr'\s{re.escape(match)}',
+                              f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
+                              inside_text, re.I)
+                tag.append(text)
 
-
+    # writting soup to the file
     def write_soup_to_file(self):
         soup_str = str(self.soup.prettify(formatter=None))
         with open(f"../cic-code-ky/transforms/ky/ocky/r{self.release_number}/{self.html_file_name}", "w") as file:
@@ -892,12 +974,18 @@ class KYParseHtml(ParserBase):
         self.remove_junk()
         self.create_main_tag()
         self.set_appropriate_tag_name_and_id()
+
+        self.add_citation()
+        # self.add_citation_link()
+
         self.create_ul_tag()
         self.create_chap_sec_nav()
         self.create_link_to_notetodecision_nav()
         self.create_ul_tag_to_notes_to_decision1()
-        self.wrap_with_ordered_tag1()
-        self.add_citation_link()
+        # self.wrap_with_ordered_tag1()
+        # self.add_citation_link()
+        # self.add_citation()
+
         self.create_and_wrap_with_div_tag()
         # self.create_div_tag()
 
