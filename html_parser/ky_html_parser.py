@@ -101,7 +101,7 @@ class KYParseHtml(ParserBase):
                         header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
 
                 elif re.match(r'^(\d+\D\.\d+)', header_tag.text):
-                    chap_num = re.search(r'^([^.]+)', header_tag.text).group().zfill(2)
+                    chap_num = re.search(r'^([^\.]+)', header_tag.text).group().zfill(2)
                     sec_num = re.search(r'^(\d+\D\.\d+)', header_tag.text).group().zfill(2)
                     header_pattern = re.search(r'^(\d+\D\.\d+)', header_tag.text.strip()).group()
                     if header_tag.find_previous(name="h3", class_=self.class_regex["sec_head"]):
