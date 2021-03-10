@@ -64,6 +64,7 @@ class KYParseHtml(ParserBase):
         for header_tag in self.soup.body.find_all():
             if header_tag.get("class") == [self.class_regex["title"]]:
                 header_tag.name = "h1"
+                header_tag.attrs= {}
                 header_tag.wrap(self.soup.new_tag("nav"))
                 self.title_id = re.search(r'^(TITLE)\s(?P<title_id>\w+)', header_tag.text.strip()).group('title_id')
 
@@ -72,13 +73,16 @@ class KYParseHtml(ParserBase):
                     chap_nums = re.search(r'^(CHAPTER|Chapter)\s(?P<chapter_id>\w+)', header_tag.text.strip()).group(
                         'chapter_id').zfill(2)
                     header_tag.name = "h2"
+                    header_tag.attrs = {}
                     header_tag['id'] = f"t{self.title_id}c{chap_nums}"
                 else:
                     header_tag.name = "h3"
                     header_id = re.sub(r'\s+', '', header_tag.get_text()).lower()
                     chap_nums = re.search(r'^(CHAPTER|Chapter)\s(?P<chapter_id>\w+)',
                                           header_tag.find_previous("h2").text.strip()).group('chapter_id').zfill(2)
+                    header_tag.attrs = {}
                     header_tag["id"] = f"t{self.title_id}c{chap_nums}{header_id}"
+
 
             elif header_tag.get("class") == [self.class_regex["sec_head"]]:
                 header_tag.name = "h3"
@@ -100,6 +104,7 @@ class KYParseHtml(ParserBase):
                         header_tag["id"] = f"t{self.title_id}c{chap_num}s{sec_num}"
 
                 elif re.match(r'^(\d+\D\.\d+)', header_tag.text):
+
                     chap_num = re.search(r'^([^.]+)', header_tag.text).group().zfill(2)
                     sec_num = re.search(r'^(\d+\D\.\d+)', header_tag.text).group().zfill(2)
                     header_pattern = re.search(r'^(\d+\D\.\d+)', header_tag.text.strip()).group()
@@ -718,7 +723,7 @@ class KYParseHtml(ParserBase):
                          r"(KRS Title \D+, Chapter \D+?,)|"
                          r"KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\)|"
                          r"KRS\s*\d+[a-zA-Z]*\.\d+(\(\d+\))*|"
-                         r"(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))", tag.text.strip()):
+                         r"(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))|(Chapters \d+, \d+, and \d+)", tag.text.strip()):
 
                 cite_p_tags.append(tag)
                 text = str(tag)
@@ -730,14 +735,17 @@ class KYParseHtml(ParserBase):
                         r'(Chapter \d+[a-zA-Z]*)|'
                         r'(Title\s+?\D+,\s+?Chapter\s+?\D+?,)|'
                         r'(\d+?\w?\.\d+\s+?\(\d\)+?)|'
-                        r'(\d+[a-zA-Z]*\.\d+\(\d+\)))',
+                        r'(\d+[a-zA-Z]*\.\d+\(\d+\))|'
+                        r'(Chapters \d+, \d+, and \d+))',
                         tag.get_text())]:
 
                     # print(match)
                     inside_text = re.sub(r'<p\sclass="\w\d+">|</p>|<b>|</b>', '', text, re.DOTALL)
+                    # match = re.sub(r'KRS\s', '', match.strip())
                     tag.clear()
 
                     #1.2025/1A.2025
+
                     if re.match(r'(\d+[a-zA-Z]*\.\d+)', match.strip()):
                         chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+', match.strip()).group("chap")
                         # print(chap_num)
@@ -754,6 +762,10 @@ class KYParseHtml(ParserBase):
 
                                     tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}'
                                     target= "_blank"
+
+                        # if re.search(r'(KRS \d+[a-zA-Z]?)', match.strip()):
+                        #     print(match)
+
 
 
                     #1.2025(a)/#1A.2025(a)
@@ -800,8 +812,8 @@ class KYParseHtml(ParserBase):
                                     titleid = key
                                     titleid1 = self.convert_roman_to_digit(key)
 
-                                tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
-                                target = "_blank"
+                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
+                                    target = "_blank"
 
                     # Chapter I
                     if re.match(r'(Chapter \d+)', match.strip()):
@@ -816,7 +828,7 @@ class KYParseHtml(ParserBase):
                                     titleid = key
                                     titleid1 = self.convert_roman_to_digit(key)
 
-                                    tag_id = f'gov.ky.krs.title.{titleid1}.html#t{titleid}c{chap_num.zfill(2)}'
+                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}'
                                     target= "_blank"
 
                     #Title I Chapter I
@@ -841,6 +853,16 @@ class KYParseHtml(ParserBase):
                             tag_id = f'gov.ky.krs.title.{title}.html#t{titleid}c{chap_num:02}'
                             target= "_blank"
 
+                    # #Chapters 42, 45, and 56
+                    # if re.search(r'Chapters \d+, \d+, and \d+', match.strip()):
+                    #     chap_num = re.search(r'Chapters (?P<ch1>\d+), (?P<ch2>\d+), and (?P<ch3>\d+)', match.strip()).groups()
+                    #
+
+                    # elif re.search(r'(KRS \d+[a-zA-Z]?)', match.strip()):
+                    #     print(match)
+                        # match = re.sub(r'KRS\s', '', match.strip())
+                        # chap_num = re.search()
+
 
                     text = re.sub(fr'\s{re.escape(match)}',
                                   f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
@@ -853,7 +875,7 @@ class KYParseHtml(ParserBase):
                          r"(KRS Chapter \d+[a-zA-Z]*)|"
                          r"(KRS Title \D+, Chapter \D+?,)|"
                          r"KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\)|"
-                         r"(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))", tag.text.strip()):
+                         r"(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))|(KRS \d+[a-zA-Z]?)", tag.text.strip()):
                 cite_li_tags.append(tag.li)
                 text = str(tag)
                 # print(tag)
@@ -864,7 +886,7 @@ class KYParseHtml(ParserBase):
                                                           r'(\d+?\w?\.\d+\s+?\(\d\)+?)|'
                                                           r'(\d+\.\d{3}[^\d]))|'
                                                           r'(\d+\.\d{3}\(\d+\))|'
-                                                          r'(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))'
+                                                          r'(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\)|(KRS \d+[a-zA-Z]?))'
                                                          ,tag.get_text())]:
 
                     match = re.sub(r'KRS\s','', match.strip())
@@ -905,6 +927,8 @@ class KYParseHtml(ParserBase):
                         if chap_num in chapter_list:
                             tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
                             target = "_self"
+
+                            # print(tag_id)
 
                         else:
                             for key, value in title_dict.items():
@@ -1009,6 +1033,9 @@ class KYParseHtml(ParserBase):
 
         title_tag = self.soup.find("nav")
         title_tag.insert(0,watermark_tag)
+
+        # for class_tag in self.soup.find_all():
+
 
 
     # citation
@@ -1174,6 +1201,8 @@ class KYParseHtml(ParserBase):
                                   f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
                                   inside_text, re.I)
                     tag.append(text)
+
+
 
     # writting soup to the file
     def write_soup_to_file(self):
