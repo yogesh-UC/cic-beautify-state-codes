@@ -8,12 +8,22 @@ class KYParseHtml(ParserBase):
     def __init__(self, input_file_name):
         super().__init__()
         self.class_regex = {'ul': '^CHAPTER', 'head2': '^CHAPTER', 'title': '^(TITLE)', 'sec_head': r'^([^\s]+[^\D]+)',
-                            'junk': '^(Text)', 'ol': r'^(\(1\))', 'head4': '^(NOTES TO DECISIONS)'}
+                            'junk': '^(Text)', 'ol': r'^(\(1\))', 'head4': '^(NOTES TO DECISIONS)',
+                            'notetodecison-nav':r'NOTES TO DECISIONS'}
         self.title_id = None
         self.soup = None
         self.junk_tag_class = ['Apple-converted-space', 'Apple-tab-span']
         self.html_file_name = input_file_name
+
+        self.watermark_text = """Release {0} of the Official Code of Georgia Annotated released {1}.
+        Transformed and posted by Public.Resource.Org using cic-beautify-state-codes.py version 1.0 on {2}.
+        This document is not subject to copyright and is in the public domain.
+        """
+
+
         self.start_parse()
+
+
 
     def create_page_soup(self):
 
@@ -54,6 +64,18 @@ class KYParseHtml(ParserBase):
             b_tag.name = "span"
             b_tag["class"] = "boldspan"
 
+        for meta in self.soup.findAll('meta'):
+            if meta.get('name') and meta.get('name') in ['Author', 'Description']:
+                meta.decompose()
+
+        for key, value in {'viewport': "width=device-width, initial-scale=1",
+                           'description': self.watermark_text.format(self.release_number, self.release_date,
+                                                                datetime.now().date())}.items():
+            new_meta = self.soup.new_tag('meta')
+            new_meta.attrs['name'] = key
+            new_meta.attrs['content'] = value
+            self.soup.head.append(new_meta)
+
         print('junk removed')
 
     # replace title tag to "h1" and wrap it with "nav" tag
@@ -79,12 +101,13 @@ class KYParseHtml(ParserBase):
                     header_id = re.sub(r'\s+', '', header_tag.get_text()).lower()
                     chap_nums = re.search(r'^(CHAPTER|Chapter)\s(?P<chapter_id>\w+)',
                                           header_tag.find_previous("h2").text.strip()).group('chapter_id').zfill(2)
-                    header_tag.attrs = {}
+
                     header_tag["id"] = f"t{self.title_id}c{chap_nums}{header_id}"
 
 
             elif header_tag.get("class") == [self.class_regex["sec_head"]]:
                 header_tag.name = "h3"
+
 
                 # sec_pattern = re.compile(r'^(\d+\.\d+\.)')
                 if re.match(r'^(\d+\.\d+\.)', header_tag.text.strip()):
@@ -198,7 +221,7 @@ class KYParseHtml(ParserBase):
                             #     header_tag["id"] = f"{prev_tag}{tag_text}-{tag_text}"
 
                         if header_tag["id"] in chapter_id_list:
-                            print(header_tag)
+                            # print(header_tag)
                             header_tag["id"] = f"{prev_tag}{tag_text}-1"
 
 
@@ -339,7 +362,12 @@ class KYParseHtml(ParserBase):
         innr_ul_tag1 = self.soup.new_tag("ul", **{"class": "leaders"})
         innr_ul_tag2 = self.soup.new_tag("ul", **{"class": "leaders"})
 
-        for note_tag in self.soup.find_all(class_=self.class_regex["ol"]):
+        for head_tag in self.soup.find_all("h4"):
+            if head_tag.text.strip() == "NOTES TO DECISIONS":
+                if re.match(r'^(\d+\.\s*\w+)', head_tag.findNext("p").text.strip()):
+                    notetodecison_nav_class = head_tag.findNext("p").get("class")
+
+        for note_tag in self.soup.find_all(class_=notetodecison_nav_class):
             if re.match(r'^(\d+\.)', note_tag.text.strip()) and note_tag.find_previous(
                     "h4") is not None and note_tag.find_previous(
                 "h4").text.strip() == 'NOTES TO DECISIONS' and note_tag.find_next().name != "span":
@@ -401,7 +429,13 @@ class KYParseHtml(ParserBase):
         innr_nav_link1 = self.soup.new_tag('a')
         innr_nav_link2 = self.soup.new_tag('a')
 
-        for p_tag in self.soup.find_all(class_=self.class_regex["ol"]):
+        for head_tag in self.soup.find_all("h4"):
+            if head_tag.text.strip() == "NOTES TO DECISIONS":
+                if re.match(r'^(\d+\.\s*\w+)', head_tag.findNext("p").text.strip()):
+                    notetodecison_nav_class = head_tag.findNext("p").get("class")
+
+
+        for p_tag in self.soup.find_all(class_=notetodecison_nav_class):
             if re.match(r'^(\d+\.)', p_tag.text.strip()):
                 if p_tag.find_previous("h4") is not None and p_tag.find_previous(
                         "h4").text.strip() == 'NOTES TO DECISIONS' and p_tag.find_next().name != "span":
@@ -1040,24 +1074,17 @@ class KYParseHtml(ParserBase):
 
     # add watermark and remove default class names
     def add_watermark_and_remove_class_name(self):
-        watermark_text = "Release 78 of the Official Code of Kentucky Annotated released 2020-08-01. Transformed and posted by Public.Resource.Org using cic-beautify-state-codes.py version 1.0 on 2021-01-08.This document is not subject to copyright and is in the public domain."
-        watermark_tag = self.soup.new_tag('p', **{"class": "transformation"})
-        watermark_tag.string = watermark_text
+
+        for tag in self.soup.find_all():
+            if tag.name in ['li','h4','h3','p']:
+                del tag["class"]
+
+        watermark_tag = self.soup.new_tag('p', Class='transformation')
+        watermark_tag.string = self.watermark_text.format(self.release_number, self.release_date,
+                                                        datetime.now().date())
 
         title_tag = self.soup.find("nav")
-        title_tag.insert(0, watermark_tag)
-
-        for meta in self.soup.findAll('meta'):
-            if meta.get('name') and meta.get('name') in ['Author', 'Description']:
-                meta.decompose()
-
-        for key, value in {'viewport': "width=device-width, initial-scale=1",
-                           'description': watermark_text.format(self.release_number, self.release_date,
-                                                                datetime.now().date())}.items():
-            new_meta = self.soup.new_tag('meta')
-            new_meta.attrs['name'] = key
-            new_meta.attrs['content'] = value
-            self.soup.head.append(new_meta)
+        title_tag.insert(0,watermark_tag)
 
     # citation
     def add_citation(self):
