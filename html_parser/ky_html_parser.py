@@ -56,15 +56,14 @@ class KYParseHtml(ParserBase):
 
         print('junk removed')
 
-
     # replace title tag to "h1" and wrap it with "nav" tag
     def set_appropriate_tag_name_and_id(self):
         snav = 0
-        # chapter_list = []
+        chapter_id_list = []
         for header_tag in self.soup.body.find_all():
             if header_tag.get("class") == [self.class_regex["title"]]:
                 header_tag.name = "h1"
-                header_tag.attrs= {}
+                header_tag.attrs = {}
                 header_tag.wrap(self.soup.new_tag("nav"))
                 self.title_id = re.search(r'^(TITLE)\s(?P<title_id>\w+)', header_tag.text.strip()).group('title_id')
 
@@ -186,8 +185,23 @@ class KYParseHtml(ParserBase):
                 if header_tag.name == "h4":
                     if header_tag.find_previous("h3"):
                         prev_tag = header_tag.find_previous("h3").get("id")
-                        note_to_decision_text = re.sub(r'\s+', '', header_tag.get_text()).lower()
-                        header_tag["id"] = f"{prev_tag}{note_to_decision_text}"
+                        tag_text = re.sub(r'\s+', '', header_tag.get_text()).lower()
+                        header_tag["id"] = f"{prev_tag}{tag_text}"
+
+                        # chapter_id_list.append(header_tag["id"])
+
+                        if header_tag.find_previous("h4"):
+                            prev_head_tag_id = header_tag.find_previous("h4").get("id")
+                            chapter_id_list.append(prev_head_tag_id)
+
+                            # if header_tag["id"] == prev_head_tag_id:
+                            #     header_tag["id"] = f"{prev_tag}{tag_text}-{tag_text}"
+
+                        if header_tag["id"] in chapter_id_list:
+                            print(header_tag)
+                            header_tag["id"] = f"{prev_tag}{tag_text}-1"
+
+
                 else:
                     if not re.match(r'^(\d+\.\s*—)', header_tag.text.strip()):
                         prev_head_tag = header_tag.find_previous("h4").get("id")
@@ -239,7 +253,8 @@ class KYParseHtml(ParserBase):
         for main_tag in self.soup.find_all("p"):
             if re.match(r'^(TITLE)', main_tag.text.strip()):
                 continue
-            elif re.match(r'^CHAPTER|^Chapter', main_tag.text.strip()) and main_tag.get("class") == [self.class_regex["ul"]]:
+            elif re.match(r'^CHAPTER|^Chapter', main_tag.text.strip()) and main_tag.get("class") == [
+                self.class_regex["ul"]]:
                 continue
             elif main_tag == first_chapter_header:
                 main_tag.wrap(section_nav_tag)
@@ -326,8 +341,8 @@ class KYParseHtml(ParserBase):
 
         for note_tag in self.soup.find_all(class_=self.class_regex["ol"]):
             if re.match(r'^(\d+\.)', note_tag.text.strip()) and note_tag.find_previous(
-                    "h4") is not None and note_tag.find_previous("h4").text.strip() == 'NOTES TO DECISIONS' and note_tag.find_next().name != "span":
-
+                    "h4") is not None and note_tag.find_previous(
+                "h4").text.strip() == 'NOTES TO DECISIONS' and note_tag.find_next().name != "span":
                 note_tag.name = "li"
 
             # parent
@@ -387,8 +402,9 @@ class KYParseHtml(ParserBase):
         innr_nav_link2 = self.soup.new_tag('a')
 
         for p_tag in self.soup.find_all(class_=self.class_regex["ol"]):
-            if re.match(r'^(\d+\.)', p_tag.text.strip()) :
-                if p_tag.find_previous("h4") is not None and p_tag.find_previous("h4").text.strip() == 'NOTES TO DECISIONS' and p_tag.find_next().name != "span":
+            if re.match(r'^(\d+\.)', p_tag.text.strip()):
+                if p_tag.find_previous("h4") is not None and p_tag.find_previous(
+                        "h4").text.strip() == 'NOTES TO DECISIONS' and p_tag.find_next().name != "span":
 
                     if not re.match(r'^(\d+\.\s*—)', p_tag.text.strip()):
                         prev_head_tag = p_tag.find_previous("h4").get("id")
@@ -435,7 +451,6 @@ class KYParseHtml(ParserBase):
                     innr_nav_link1["href"] = f"#{sub_sec_id}-{sub_sec}"
                     p_tag.string = ''
                     p_tag.insert(0, innr_nav_link1)
-
 
     # wrapping with ol tag
     def wrap_with_ordered_tag1(self):
@@ -489,7 +504,7 @@ class KYParseHtml(ParserBase):
                 else:
                     ol_tag2.append(tag)
 
-                tag_id = re.search(r'^(\((?P<id>\D+)\))', current_tag).group('id')
+                tag_id = re.search(r'^(\((?P<id>[a-z])\))', current_tag).group('id')
                 prev_header_id = ol_num.get("id")
                 tag["id"] = f"{prev_header_id}{tag_id}"
 
@@ -516,12 +531,12 @@ class KYParseHtml(ParserBase):
                 tag.contents = []
                 tag.append(ol_tag2)
 
-            # (4)(a)1.
+                # (4)(a)1.
                 if re.match(r'\(\d+\)\s*\(\D\)\s*\d\.', current_tag):
                     ol_tag4 = self.soup.new_tag("ol")
                     inner_li_tag = self.soup.new_tag("li")
 
-                    tag_text = re.sub(r'\(\d+\)\s*\(\D\)\s*\d\.','',current_tag)
+                    tag_text = re.sub(r'\(\d+\)\s*\(\D\)\s*\d\.', '', current_tag)
                     inner_li_tag.append(tag_text)
 
                     # print(tag)
@@ -541,7 +556,7 @@ class KYParseHtml(ParserBase):
                     ol_tag4.find_previous().string.replace_with(ol_tag4)
 
             # a
-            if re.match(r'\D\.', current_tag):
+            if re.match(r'[a-z]\.', current_tag):
                 if re.match(r'a\.', current_tag):
                     ol_tag3 = self.soup.new_tag("ol", type="a", **{"class": "alpha"})
                     tag.wrap(ol_tag3)
@@ -553,7 +568,7 @@ class KYParseHtml(ParserBase):
                 else:
                     tag.find_previous("li").append(tag)
 
-                tag_id = re.search(r'^(?P<id>\D)\.', current_tag).group('id')
+                tag_id = re.search(r'^(?P<id>[a-z])\.', current_tag).group('id')
                 tag["id"] = f"{prev_header_id}{tag_id}"
 
                 tag.span.string = ""
@@ -566,7 +581,7 @@ class KYParseHtml(ParserBase):
                 tag_id1 = re.search(r'^\((?P<id1>\D+)\)\s(\d)+', current_tag).group("id1")
                 tag_id2 = re.search(r'^\(\D+\)\s(?P<id2>\d)+', current_tag).group("id2")
 
-                tag_text = re.sub(r'^\(\D+\)\s(\d)\.','',current_tag)
+                tag_text = re.sub(r'^\(\D+\)\s(\d)\.', '', current_tag)
                 li_tag.append(tag_text)
 
                 # li_tag.append(current_tag.strip())
@@ -690,323 +705,322 @@ class KYParseHtml(ParserBase):
         return ans
 
     # add citation
-    def add_citation1(self):
-
-        title_dict = {"I": ['1', '2', '3'], "II": ['5', '6', '6A', '7', '7A', '7B', '8'],"III": ['11', '11A', '12', '13', '13A', '13B', '14', '14A', '15', '15A', '16', '17','18', '18A', '19'], "IV": ['21', '21A', '22', '22A', '23', '23A', '24', '24A',
-                    '25', '26', '26A', '27', '27A', '28', '29', '29A', '30', '30A','31', '31A', '32', '34'],'V': ['35', '36', '37', '38', '39', '39A', '39B', '39C', '39D', '39E', '39F', '39G', '40'],'VI': ['41', '42', '43', '44', '45', '45A', '46', '47', '48', '49'],
-                      'VII': ['56', '57', '58'], 'VIII': ['61', '62', '63', '64', '64'],'IX': ['65', '65A', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78','79', '80','81', '81A', '82', '83', '83A', '84', '85', '86', '87', '88', '89', '90', '91', '91A', '92','93','93A', '94', '95', '95A', '96', '96A', '97', '98', '99', '99A', '100', '101', '102', '103','104', '105','106', '107', '108', '108A', '109'],
-                      'X':['116','117','117A','118','118A','119','120','121','121A','122','123','124','125','126','127','128'],'XI':['131','132','133','134','135','136','137','138','139','140','141','142','143','143A','144'],'XII':['146','147','147A','147B','148','149','150','151','151B','152','152A','153','154','154A','154B','155'],'XIII':['156','157','157A','158','159','160','161','162','163','164A','165','165A','166','167','168'],'XIV':['171','172','173'],'XV':['174','175','175A','175B','176','177','178','179','180','181','182','183','184'],
-                      'XVI':['186','186A','187','188','189','189A','190','190A'],'XVII':['194','194A','194B','195','196','197','198','198A','198B','199','200','201','202','202A','202B','203','204','205','206','207','208','208A','208B','208C','208D','208E','208F','208G','209','209A'],'XVIII':['210','211','212','213','214','215','216','216A','216B','216C','217','217A','217B','217C','218','218A','219','220','221','222','223','224','224A'],'XIX':['226','227','227A','228','229','230','231','232','233','234','235','236','237','238'],'XX':['241','242','243','244'],
-                      'XXI':['246','247','248','249','248','249','250','251','252','253','254','255','256','257','258','259','260','261','262','263'],'XXII':['266','267','268','269'],'XXIII':['271','271A','271B','272','272A','273','274','274','275'],'XXIV':['276','277','278','279','280','281','281A'],'XXV':['286','287','288','289','290','291','292','293','294','295','296','297','298','299','300','301','302','303','304','305','306','307'],'XXVI':['309','310','311','311A','311B','312','313','314','314A','315','316','317','317A','317B','318','319','319A','319B','319C','320','321','322','322A','323','323A','324','324A','324B','325','326','327','328','329','329A','330','331','332','333','334','334A','335','335B'],
-                      'XXVII':['336','337','338','339','340','341','342','343','344','345','346','347'],'XXVIII':['349','350','351','352','353','354'],'XXIX':['355','356','357','358','359','360','361','362','363','364','365','366','367','368','369'],
-                      'XXX':['371','372'],'XXXI':['376','377','378','379','380'],'XXXII':['381','382','383','384','385'],'XXXIII':['386','386A','386B','387','388','389','389A','390'],'XXXIV':['391','392','393','393A','394','395','395A','396','397','397A'],'XXXV':['401','402','403','404','405','406','407'],'XXXVI':['411','412','413','414','415','416','417','418','419','420','421','422','423','424','425','426','427','428','429','430','431','432','433','434','435','436','437','438','439','440','441','442','443','444','445'],'XXXVII':['416','417','418','419'],'XXXVIII':['421','422','423','424'],'XXXIX':['425','426','427'],'XXXX':['431','432','434','435','436','437','438','439','440','441'],'XXXXI':['446','447'],'XXXXII':['451','452','453','454','455','456','457'],'XXXXX':['500','501','502','503','504','505','506','507','507A','508','509','510','511','512','513','514','515',
-                        '516','517','518','519','520','521','522','523','524','525','526','527','528','529','530','531','532','533','534'],'XXXXXI':['600','605','610','615','620','625','630','635','640','645']
-
-                      }
-        tag_id = None
-        target = "_blank"
-
-        chapter_list = []
-        for chap_tag in self.soup.find_all(class_=self.class_regex["ul"]):
-            if re.match(r'^(CHAPTER)', chap_tag.a.text.strip()):
-                chap_list = re.search(r'^(CHAPTER\s*(?P<chap_num>\d+))', chap_tag.a.text.strip()).group("chap_num")
-                chapter_list = chapter_list + [chap_list]
-
-        cite_p_tags = []
-        cite_li_tags = []
-        titleid = ""
-
-        for tag in self.soup.find_all("p"):
-
-            if re.search(r"KRS\s*\d+[a-zA-Z]*\.\d+|"
-                         r"(KRS Chapter \d+)|"
-                         r"(KRS Title \D+, Chapter \D+?,)|"
-                         r"KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\)|"
-                         r"KRS\s*\d+[a-zA-Z]*\.\d+(\(\d+\))*|"
-                         r"(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))|(Chapters \d+, \d+, and \d+)", tag.text.strip()):
-
-                cite_p_tags.append(tag)
-                text = str(tag)
-                # print(tag)
-
-                for match in [x[0] for x in re.findall(
-                        r'(\d+[a-zA-Z]*\.\d+(\(\d+\))|'
-                        r'(\d+[a-zA-Z]*\.\d+)|'
-                        r'(Chapter \d+[a-zA-Z]*)|'
-                        r'(Title\s+?\D+,\s+?Chapter\s+?\D+?,)|'
-                        r'(\d+?\w?\.\d+\s+?\(\d\)+?)|'
-                        r'(\d+[a-zA-Z]*\.\d+\(\d+\))|'
-                        r'(Chapters \d+, \d+, and \d+))',
-                        tag.get_text())]:
-
-                    # print(match)
-                    inside_text = re.sub(r'<p\sclass="\w\d+">|</p>|<b>|</b>', '', text, re.DOTALL)
-                    # match = re.sub(r'KRS\s', '', match.strip())
-                    tag.clear()
-
-                    #1.2025/1A.2025
-
-                    if re.match(r'(\d+[a-zA-Z]*\.\d+)', match.strip()):
-                        chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+', match.strip()).group("chap")
-                        # print(chap_num)
-                        sec_num = re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()).group().zfill(2)
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}'
-                            target= "_self"
-
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}'
-                                    target= "_blank"
-
-                        # if re.search(r'(KRS \d+[a-zA-Z]?)', match.strip()):
-                        #     print(match)
-
-
-
-                    #1.2025(a)/#1A.2025(a)
-                    if re.match(r'\d+[a-zA-Z]*\.\d+(\(\d+\))', match.strip()):
-
-                        # print(match)
-                        chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))', match.strip()).group("chap")
-                        # print(chap_num)
-                        sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
-                        ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
-                        # print(ol_num)
-
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
-                            target = "_self"
-
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
-                                    target = "_blank"
-
-
-                    #1.2025(a)(1)/1A.2025(a)(1)
-                    if re.search(r'(\d+[a-zA-Z]*\.\d+(\(\d+\))(\(\D\)))', match.strip()):
-                        # print(match)
-                        chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))(\(\D\))', match.strip()).group("chap")
-                        # print(chap_num)
-                        sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
-                        ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
-                        inr_ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\(\d+\)\((?P<innr_ol>\D)\)', match.strip()).group("innr_ol")
-                        # print(inr_ol_num)
-
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
-                            target = "_self"
-
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
-                                    target = "_blank"
-
-                    # Chapter I
-                    if re.match(r'(Chapter \d+)', match.strip()):
-                        # print(match)
-                        chap_num = re.search(r'Chapter (?P<chap>\d+[a-zA-Z]*)', match.strip()).group("chap")
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}'
-                            target= "_self"
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}'
-                                    target= "_blank"
-
-                    #Title I Chapter I
-                    if re.match(r'(Title\s+?(\D+|\d+),\s+?Chapter\s+?(\D+|\d+)?,)', match.strip()):
-                        tag_id = re.search(r'(Title\s+?(?P<tid>\D+|\d+),\s+?Chapter\s+?(?P<cid>\D+|\d+)?,)',
-                                                   match.strip())
-
-                        title_id = tag_id.group("tid")
-                        chapter = tag_id.group("cid")
-
-                        if chapter.isalpha():
-                            chap_num = self.convert_roman_to_digit(chapter)
-                        else:
-                            chap_num = chapter
-
-                        title = self.convert_roman_to_digit(title_id)
-
-                        if str(chap_num) in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num:02}'
-                            target= "_self"
-                        else:
-                            tag_id = f'gov.ky.krs.title.{title}.html#t{titleid}c{chap_num:02}'
-                            target= "_blank"
-
-                    # #Chapters 42, 45, and 56
-                    # if re.search(r'Chapters \d+, \d+, and \d+', match.strip()):
-                    #     chap_num = re.search(r'Chapters (?P<ch1>\d+), (?P<ch2>\d+), and (?P<ch3>\d+)', match.strip()).groups()
-                    #
-
-                    # elif re.search(r'(KRS \d+[a-zA-Z]?)', match.strip()):
-                    #     print(match)
-                        # match = re.sub(r'KRS\s', '', match.strip())
-                        # chap_num = re.search()
-
-
-                    text = re.sub(fr'\s{re.escape(match)}',
-                                  f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
-                                  inside_text, re.I)
-                    tag.append(text)
-
-
-        for tag in self.soup.find_all("ol"):
-            if re.search(r"KRS\s?\d+[a-zA-Z]*\.\d+(\(\d+\))*|"
-                         r"(KRS Chapter \d+[a-zA-Z]*)|"
-                         r"(KRS Title \D+, Chapter \D+?,)|"
-                         r"KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\)|"
-                         r"(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))|(KRS \d+[a-zA-Z]?)", tag.text.strip()):
-                cite_li_tags.append(tag.li)
-                text = str(tag)
-                # print(tag)
-
-                for match in [x[0] for x in re.findall(r'((KRS\s?\d+[a-zA-Z]*\.\d+(\(\d+\))*(\(\D\))*)|'
-                                                          r'(Chapter \d+[a-zA-Z]*)|'
-                                                          r'(Title\s+?\D+,\s+?Chapter\s+?\D+?,)|'
-                                                          r'(\d+?\w?\.\d+\s+?\(\d\)+?)|'
-                                                          r'(\d+\.\d{3}[^\d]))|'
-                                                          r'(\d+\.\d{3}\(\d+\))|'
-                                                          r'(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\)|(KRS \d+[a-zA-Z]?))'
-                                                         ,tag.get_text())]:
-
-                    match = re.sub(r'KRS\s','', match.strip())
-                    # print(match)
-
-                    inside_text = re.sub(r'<p\sclass="\w\d+">|</p>|<b>|</b>', '', text, re.DOTALL)
-                    tag.clear()
-
-
-                    # 1.2025/1A.2025
-                    if re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()):
-                        chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+', match.strip()).group("chap")
-                        # print(chap_num)
-                        sec_num = re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()).group().zfill(2)
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}'
-                            target= "_self"
-
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}'
-                                    target= "_blank"
-
-
-                    # 1.2025(a)/#1A.2025(a)
-                    if re.search(r'\d+[a-zA-Z]*\.\d+(\(\d+\))', match.strip()):
-                        # print(match)
-                        chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))', match.strip()).group("chap")
-                        # print(chap_num)
-                        sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
-                        ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
-                        # print(ol_num)
-
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
-                            target = "_self"
-
-                            # print(tag_id)
-
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
-                                    target = "_blank"
-
-
-                    # 1.2025(a)(1)/1A.2025(a)(1)
-                    if re.search(r'(\d+[a-zA-Z]*\.\d+(\(\d+\))(\(\D\)))', match.strip()):
-                        # print(match)
-                        chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))(\(\D\))', match.strip()).group("chap")
-                        # print(chap_num)
-                        sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
-                        ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
-                        inr_ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\(\d+\)\((?P<innr_ol>\D)\)', match.strip()).group("innr_ol")
-                        # print(inr_ol_num)
-
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
-                            target = "_self"
-
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-
-                                tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
-                                target = "_blank"
-
-                    # Chapter I
-                    if re.search(r'(Chapter \d+[a-zA-Z]*)', match.strip()):
-                        chap_num = re.search(r'Chapter (?P<chap>\d+[a-zA-Z]*)', match.strip()).group("chap")
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}'
-                            target= "_self"
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}'
-                                    # print(tag_id)
-                                    target= "_blank"
-
-                    # Title I Chapter I
-                    if re.search(r'(Title\s+?(\D+|\d+),\s+?Chapter\s+?(\D+|\d+)?,)', match.strip()):
-                        tag_id = re.search(r'(Title\s+?(?P<tid>\D+|\d+),\s+?Chapter\s+?(?P<cid>\D+|\d+)?,)',
-                                                   match.strip())
-
-                        title_id = tag_id.group("tid")
-                        chapter = tag_id.group("cid")
-
-                        if chapter.isalpha():
-                            chap_num = self.convert_roman_to_digit(chapter)
-                        else:
-                            chap_num = chapter
-
-                        title = self.convert_roman_to_digit(title_id)
-
-                        if str(chap_num) in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num:02}'
-                            target= "_self"
-                        else:
-                            tag_id = f'gov.ky.krs.title.{title}.html#t{titleid}c{chap_num:02}'
-                            target= "_blank"
-
-                    text = re.sub(fr'\s{re.escape(match)}',
-                                  f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
-                                  inside_text, re.I)
-                    tag.append(text)
-
-        print("citations are created")
-
+    # def add_citation1(self):
+    #
+    #     title_dict = {"I": ['1', '2', '3'], "II": ['5', '6', '6A', '7', '7A', '7B', '8'],"III": ['11', '11A', '12', '13', '13A', '13B', '14', '14A', '15', '15A', '16', '17','18', '18A', '19'], "IV": ['21', '21A', '22', '22A', '23', '23A', '24', '24A',
+    #                 '25', '26', '26A', '27', '27A', '28', '29', '29A', '30', '30A','31', '31A', '32', '34'],'V': ['35', '36', '37', '38', '39', '39A', '39B', '39C', '39D', '39E', '39F', '39G', '40'],'VI': ['41', '42', '43', '44', '45', '45A', '46', '47', '48', '49'],
+    #                   'VII': ['56', '57', '58'], 'VIII': ['61', '62', '63', '64', '64'],'IX': ['65', '65A', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78','79', '80','81', '81A', '82', '83', '83A', '84', '85', '86', '87', '88', '89', '90', '91', '91A', '92','93','93A', '94', '95', '95A', '96', '96A', '97', '98', '99', '99A', '100', '101', '102', '103','104', '105','106', '107', '108', '108A', '109'],
+    #                   'X':['116','117','117A','118','118A','119','120','121','121A','122','123','124','125','126','127','128'],'XI':['131','132','133','134','135','136','137','138','139','140','141','142','143','143A','144'],'XII':['146','147','147A','147B','148','149','150','151','151B','152','152A','153','154','154A','154B','155'],'XIII':['156','157','157A','158','159','160','161','162','163','164A','165','165A','166','167','168'],'XIV':['171','172','173'],'XV':['174','175','175A','175B','176','177','178','179','180','181','182','183','184'],
+    #                   'XVI':['186','186A','187','188','189','189A','190','190A'],'XVII':['194','194A','194B','195','196','197','198','198A','198B','199','200','201','202','202A','202B','203','204','205','206','207','208','208A','208B','208C','208D','208E','208F','208G','209','209A'],'XVIII':['210','211','212','213','214','215','216','216A','216B','216C','217','217A','217B','217C','218','218A','219','220','221','222','223','224','224A'],'XIX':['226','227','227A','228','229','230','231','232','233','234','235','236','237','238'],'XX':['241','242','243','244'],
+    #                   'XXI':['246','247','248','249','248','249','250','251','252','253','254','255','256','257','258','259','260','261','262','263'],'XXII':['266','267','268','269'],'XXIII':['271','271A','271B','272','272A','273','274','274','275'],'XXIV':['276','277','278','279','280','281','281A'],'XXV':['286','287','288','289','290','291','292','293','294','295','296','297','298','299','300','301','302','303','304','305','306','307'],'XXVI':['309','310','311','311A','311B','312','313','314','314A','315','316','317','317A','317B','318','319','319A','319B','319C','320','321','322','322A','323','323A','324','324A','324B','325','326','327','328','329','329A','330','331','332','333','334','334A','335','335B'],
+    #                   'XXVII':['336','337','338','339','340','341','342','343','344','345','346','347'],'XXVIII':['349','350','351','352','353','354'],'XXIX':['355','356','357','358','359','360','361','362','363','364','365','366','367','368','369'],
+    #                   'XXX':['371','372'],'XXXI':['376','377','378','379','380'],'XXXII':['381','382','383','384','385'],'XXXIII':['386','386A','386B','387','388','389','389A','390'],'XXXIV':['391','392','393','393A','394','395','395A','396','397','397A'],'XXXV':['401','402','403','404','405','406','407'],'XXXVI':['411','412','413','414','415','416','417','418','419','420','421','422','423','424','425','426','427','428','429','430','431','432','433','434','435','436','437','438','439','440','441','442','443','444','445'],'XXXVII':['416','417','418','419'],'XXXVIII':['421','422','423','424'],'XXXIX':['425','426','427'],'XXXX':['431','432','434','435','436','437','438','439','440','441'],'XXXXI':['446','447'],'XXXXII':['451','452','453','454','455','456','457'],'XXXXX':['500','501','502','503','504','505','506','507','507A','508','509','510','511','512','513','514','515',
+    #                     '516','517','518','519','520','521','522','523','524','525','526','527','528','529','530','531','532','533','534'],'XXXXXI':['600','605','610','615','620','625','630','635','640','645']
+    #
+    #                   }
+    #     tag_id = None
+    #     target = "_blank"
+    #
+    #     chapter_list = []
+    #     for chap_tag in self.soup.find_all(class_=self.class_regex["ul"]):
+    #         if re.match(r'^(CHAPTER)', chap_tag.a.text.strip()):
+    #             chap_list = re.search(r'^(CHAPTER\s*(?P<chap_num>\d+))', chap_tag.a.text.strip()).group("chap_num")
+    #             chapter_list = chapter_list + [chap_list]
+    #
+    #     cite_p_tags = []
+    #     cite_li_tags = []
+    #     titleid = ""
+    #
+    #     for tag in self.soup.find_all("p"):
+    #
+    #         if re.search(r"KRS\s*\d+[a-zA-Z]*\.\d+|"
+    #                      r"(KRS Chapter \d+)|"
+    #                      r"(KRS Title \D+, Chapter \D+?,)|"
+    #                      r"KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\)|"
+    #                      r"KRS\s*\d+[a-zA-Z]*\.\d+(\(\d+\))*|"
+    #                      r"(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))|(Chapters \d+, \d+, and \d+)", tag.text.strip()):
+    #
+    #             cite_p_tags.append(tag)
+    #             text = str(tag)
+    #             # print(tag)
+    #
+    #             for match in [x[0] for x in re.findall(
+    #                     r'(\d+[a-zA-Z]*\.\d+(\(\d+\))|'
+    #                     r'(\d+[a-zA-Z]*\.\d+)|'
+    #                     r'(Chapter \d+[a-zA-Z]*)|'
+    #                     r'(Title\s+?\D+,\s+?Chapter\s+?\D+?,)|'
+    #                     r'(\d+?\w?\.\d+\s+?\(\d\)+?)|'
+    #                     r'(\d+[a-zA-Z]*\.\d+\(\d+\))|'
+    #                     r'(Chapters \d+, \d+, and \d+))',
+    #                     tag.get_text())]:
+    #
+    #                 # print(match)
+    #                 inside_text = re.sub(r'<p\sclass="\w\d+">|</p>|<b>|</b>', '', text, re.DOTALL)
+    #                 # match = re.sub(r'KRS\s', '', match.strip())
+    #                 tag.clear()
+    #
+    #                 #1.2025/1A.2025
+    #
+    #                 if re.match(r'(\d+[a-zA-Z]*\.\d+)', match.strip()):
+    #                     chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+', match.strip()).group("chap")
+    #                     # print(chap_num)
+    #                     sec_num = re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()).group().zfill(2)
+    #                     if chap_num in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}'
+    #                         target= "_self"
+    #
+    #                     else:
+    #                         for key, value in title_dict.items():
+    #                             if chap_num in value:
+    #                                 titleid = key
+    #                                 titleid1 = self.convert_roman_to_digit(key)
+    #
+    #                                 tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}'
+    #                                 target= "_blank"
+    #
+    #                     # if re.search(r'(KRS \d+[a-zA-Z]?)', match.strip()):
+    #                     #     print(match)
+    #
+    #
+    #
+    #                 #1.2025(a)/#1A.2025(a)
+    #                 if re.match(r'\d+[a-zA-Z]*\.\d+(\(\d+\))', match.strip()):
+    #
+    #                     # print(match)
+    #                     chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))', match.strip()).group("chap")
+    #                     # print(chap_num)
+    #                     sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
+    #                     ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
+    #                     # print(ol_num)
+    #
+    #                     if chap_num in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
+    #                         target = "_self"
+    #
+    #                     else:
+    #                         for key, value in title_dict.items():
+    #                             if chap_num in value:
+    #                                 titleid = key
+    #                                 titleid1 = self.convert_roman_to_digit(key)
+    #
+    #                                 tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
+    #                                 target = "_blank"
+    #
+    #
+    #                 #1.2025(a)(1)/1A.2025(a)(1)
+    #                 if re.search(r'(\d+[a-zA-Z]*\.\d+(\(\d+\))(\(\D\)))', match.strip()):
+    #                     # print(match)
+    #                     chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))(\(\D\))', match.strip()).group("chap")
+    #                     # print(chap_num)
+    #                     sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
+    #                     ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
+    #                     inr_ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\(\d+\)\((?P<innr_ol>\D)\)', match.strip()).group("innr_ol")
+    #                     # print(inr_ol_num)
+    #
+    #                     if chap_num in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
+    #                         target = "_self"
+    #
+    #                     else:
+    #                         for key, value in title_dict.items():
+    #                             if chap_num in value:
+    #                                 titleid = key
+    #                                 titleid1 = self.convert_roman_to_digit(key)
+    #
+    #                                 tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
+    #                                 target = "_blank"
+    #
+    #                 # Chapter I
+    #                 if re.match(r'(Chapter \d+)', match.strip()):
+    #                     # print(match)
+    #                     chap_num = re.search(r'Chapter (?P<chap>\d+[a-zA-Z]*)', match.strip()).group("chap")
+    #                     if chap_num in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}'
+    #                         target= "_self"
+    #                     else:
+    #                         for key, value in title_dict.items():
+    #                             if chap_num in value:
+    #                                 titleid = key
+    #                                 titleid1 = self.convert_roman_to_digit(key)
+    #
+    #                                 tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}'
+    #                                 target= "_blank"
+    #
+    #                 #Title I Chapter I
+    #                 if re.match(r'(Title\s+?(\D+|\d+),\s+?Chapter\s+?(\D+|\d+)?,)', match.strip()):
+    #                     tag_id = re.search(r'(Title\s+?(?P<tid>\D+|\d+),\s+?Chapter\s+?(?P<cid>\D+|\d+)?,)',
+    #                                                match.strip())
+    #
+    #                     title_id = tag_id.group("tid")
+    #                     chapter = tag_id.group("cid")
+    #
+    #                     if chapter.isalpha():
+    #                         chap_num = self.convert_roman_to_digit(chapter)
+    #                     else:
+    #                         chap_num = chapter
+    #
+    #                     title = self.convert_roman_to_digit(title_id)
+    #
+    #                     if str(chap_num) in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num:02}'
+    #                         target= "_self"
+    #                     else:
+    #                         tag_id = f'gov.ky.krs.title.{title}.html#t{titleid}c{chap_num:02}'
+    #                         target= "_blank"
+    #
+    #                 # #Chapters 42, 45, and 56
+    #                 # if re.search(r'Chapters \d+, \d+, and \d+', match.strip()):
+    #                 #     chap_num = re.search(r'Chapters (?P<ch1>\d+), (?P<ch2>\d+), and (?P<ch3>\d+)', match.strip()).groups()
+    #                 #
+    #
+    #                 # elif re.search(r'(KRS \d+[a-zA-Z]?)', match.strip()):
+    #                 #     print(match)
+    #                     # match = re.sub(r'KRS\s', '', match.strip())
+    #                     # chap_num = re.search()
+    #
+    #
+    #                 text = re.sub(fr'\s{re.escape(match)}',
+    #                               f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
+    #                               inside_text, re.I)
+    #                 tag.append(text)
+    #
+    #
+    #     for tag in self.soup.find_all("ol"):
+    #         if re.search(r"KRS\s?\d+[a-zA-Z]*\.\d+(\(\d+\))*|"
+    #                      r"(KRS Chapter \d+[a-zA-Z]*)|"
+    #                      r"(KRS Title \D+, Chapter \D+?,)|"
+    #                      r"KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\)|"
+    #                      r"(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))|(KRS \d+[a-zA-Z]?)", tag.text.strip()):
+    #             cite_li_tags.append(tag.li)
+    #             text = str(tag)
+    #             # print(tag)
+    #
+    #             for match in [x[0] for x in re.findall(r'((KRS\s?\d+[a-zA-Z]*\.\d+(\(\d+\))*(\(\D\))*)|'
+    #                                                       r'(Chapter \d+[a-zA-Z]*)|'
+    #                                                       r'(Title\s+?\D+,\s+?Chapter\s+?\D+?,)|'
+    #                                                       r'(\d+?\w?\.\d+\s+?\(\d\)+?)|'
+    #                                                       r'(\d+\.\d{3}[^\d]))|'
+    #                                                       r'(\d+\.\d{3}\(\d+\))|'
+    #                                                       r'(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\)|(KRS \d+[a-zA-Z]?))'
+    #                                                      ,tag.get_text())]:
+    #
+    #                 match = re.sub(r'KRS\s','', match.strip())
+    #                 # print(match)
+    #
+    #                 inside_text = re.sub(r'<p\sclass="\w\d+">|</p>|<b>|</b>', '', text, re.DOTALL)
+    #                 tag.clear()
+    #
+    #
+    #                 # 1.2025/1A.2025
+    #                 if re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()):
+    #                     chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+', match.strip()).group("chap")
+    #                     # print(chap_num)
+    #                     sec_num = re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()).group().zfill(2)
+    #                     if chap_num in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}'
+    #                         target= "_self"
+    #
+    #                     else:
+    #                         for key, value in title_dict.items():
+    #                             if chap_num in value:
+    #                                 titleid = key
+    #                                 titleid1 = self.convert_roman_to_digit(key)
+    #
+    #                                 tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}'
+    #                                 target= "_blank"
+    #
+    #
+    #                 # 1.2025(a)/#1A.2025(a)
+    #                 if re.search(r'\d+[a-zA-Z]*\.\d+(\(\d+\))', match.strip()):
+    #                     # print(match)
+    #                     chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))', match.strip()).group("chap")
+    #                     # print(chap_num)
+    #                     sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
+    #                     ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
+    #                     # print(ol_num)
+    #
+    #                     if chap_num in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
+    #                         target = "_self"
+    #
+    #                         # print(tag_id)
+    #
+    #                     else:
+    #                         for key, value in title_dict.items():
+    #                             if chap_num in value:
+    #                                 titleid = key
+    #                                 titleid1 = self.convert_roman_to_digit(key)
+    #
+    #                                 tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
+    #                                 target = "_blank"
+    #
+    #
+    #                 # 1.2025(a)(1)/1A.2025(a)(1)
+    #                 if re.search(r'(\d+[a-zA-Z]*\.\d+(\(\d+\))(\(\D\)))', match.strip()):
+    #                     # print(match)
+    #                     chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))(\(\D\))', match.strip()).group("chap")
+    #                     # print(chap_num)
+    #                     sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
+    #                     ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
+    #                     inr_ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\(\d+\)\((?P<innr_ol>\D)\)', match.strip()).group("innr_ol")
+    #                     # print(inr_ol_num)
+    #
+    #                     if chap_num in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
+    #                         target = "_self"
+    #
+    #                     else:
+    #                         for key, value in title_dict.items():
+    #                             if chap_num in value:
+    #                                 titleid = key
+    #                                 titleid1 = self.convert_roman_to_digit(key)
+    #
+    #                             tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
+    #                             target = "_blank"
+    #
+    #                 # Chapter I
+    #                 if re.search(r'(Chapter \d+[a-zA-Z]*)', match.strip()):
+    #                     chap_num = re.search(r'Chapter (?P<chap>\d+[a-zA-Z]*)', match.strip()).group("chap")
+    #                     if chap_num in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}'
+    #                         target= "_self"
+    #                     else:
+    #                         for key, value in title_dict.items():
+    #                             if chap_num in value:
+    #                                 titleid = key
+    #                                 titleid1 = self.convert_roman_to_digit(key)
+    #                                 tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}'
+    #                                 # print(tag_id)
+    #                                 target= "_blank"
+    #
+    #                 # Title I Chapter I
+    #                 if re.search(r'(Title\s+?(\D+|\d+),\s+?Chapter\s+?(\D+|\d+)?,)', match.strip()):
+    #                     tag_id = re.search(r'(Title\s+?(?P<tid>\D+|\d+),\s+?Chapter\s+?(?P<cid>\D+|\d+)?,)',
+    #                                                match.strip())
+    #
+    #                     title_id = tag_id.group("tid")
+    #                     chapter = tag_id.group("cid")
+    #
+    #                     if chapter.isalpha():
+    #                         chap_num = self.convert_roman_to_digit(chapter)
+    #                     else:
+    #                         chap_num = chapter
+    #
+    #                     title = self.convert_roman_to_digit(title_id)
+    #
+    #                     if str(chap_num) in chapter_list:
+    #                         tag_id = f'#t{self.title_id}c{chap_num:02}'
+    #                         target= "_self"
+    #                     else:
+    #                         tag_id = f'gov.ky.krs.title.{title}.html#t{titleid}c{chap_num:02}'
+    #                         target= "_blank"
+    #
+    #                 text = re.sub(fr'\s{re.escape(match)}',
+    #                               f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
+    #                               inside_text, re.I)
+    #                 tag.append(text)
+    #
+    #     print("citations are created")
 
     # creating numberical ol
     def create_numberical_ol(self):
@@ -1018,41 +1032,96 @@ class KYParseHtml(ParserBase):
 
         for tag in self.soup.findAll("li", class_=self.class_regex["ol"]):
             if re.match(pattern, tag.text.strip()):
-                if re.match(Num_bracket_pattern, tag.text.strip()) or re.match(alpha_pattern, tag.text.strip()) or re.match(num_pattern, tag.text.strip()):
+                if re.match(Num_bracket_pattern, tag.text.strip()) or re.match(alpha_pattern,
+                                                                               tag.text.strip()) or re.match(
+                        num_pattern, tag.text.strip()):
                     if tag.span:
                         tag.span.string = ""
 
-
-
-
-    #add watermark and remove default class names
+    # add watermark and remove default class names
     def add_watermark_and_remove_class_name(self):
         watermark_text = "Release 78 of the Official Code of Kentucky Annotated released 2020-08-01. Transformed and posted by Public.Resource.Org using cic-beautify-state-codes.py version 1.0 on 2021-01-08.This document is not subject to copyright and is in the public domain."
         watermark_tag = self.soup.new_tag('p', **{"class": "transformation"})
         watermark_tag.string = watermark_text
 
         title_tag = self.soup.find("nav")
-        title_tag.insert(0,watermark_tag)
+        title_tag.insert(0, watermark_tag)
 
-        # for class_tag in self.soup.find_all():
+        for meta in self.soup.findAll('meta'):
+            if meta.get('name') and meta.get('name') in ['Author', 'Description']:
+                meta.decompose()
 
-
+        for key, value in {'viewport': "width=device-width, initial-scale=1",
+                           'description': watermark_text.format(self.release_number, self.release_date,
+                                                                datetime.now().date())}.items():
+            new_meta = self.soup.new_tag('meta')
+            new_meta.attrs['name'] = key
+            new_meta.attrs['content'] = value
+            self.soup.head.append(new_meta)
 
     # citation
     def add_citation(self):
-
-
-
-        title_dict = {"I": ['1', '2', '3'], "II": ['5', '6', '6A', '7', '7A', '7B', '8'],"III": ['11', '11A', '12', '13', '13A', '13B', '14', '14A', '15', '15A', '16', '17','18', '18A', '19'], "IV": ['21', '21A', '22', '22A', '23', '23A', '24', '24A',
-                    '25', '26', '26A', '27', '27A', '28', '29', '29A', '30', '30A','31', '31A', '32', '34'],'V': ['35', '36', '37', '38', '39', '39A', '39B', '39C', '39D', '39E', '39F', '39G', '40'],'VI': ['41', '42', '43', '44', '45', '45A', '46', '47', '48', '49'],
-                      'VII': ['56', '57', '58'], 'VIII': ['61', '62', '63', '64', '64'],'IX': ['65', '65A', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78','79', '80','81', '81A', '82', '83', '83A', '84', '85', '86', '87', '88', '89', '90', '91', '91A', '92','93','93A', '94', '95', '95A', '96', '96A', '97', '98', '99', '99A', '100', '101', '102', '103','104', '105','106', '107', '108', '108A', '109'],
-                      'X':['116','117','117A','118','118A','119','120','121','121A','122','123','124','125','126','127','128'],'XI':['131','132','133','134','135','136','137','138','139','140','141','142','143','143A','144'],'XII':['146','147','147A','147B','148','149','150','151','151B','152','152A','153','154','154A','154B','155'],'XIII':['156','157','157A','158','159','160','161','162','163','164A','165','165A','166','167','168'],'XIV':['171','172','173'],'XV':['174','175','175A','175B','176','177','178','179','180','181','182','183','184'],
-                      'XVI':['186','186A','187','188','189','189A','190','190A'],'XVII':['194','194A','194B','195','196','197','198','198A','198B','199','200','201','202','202A','202B','203','204','205','206','207','208','208A','208B','208C','208D','208E','208F','208G','209','209A'],'XVIII':['210','211','212','213','214','215','216','216A','216B','216C','217','217A','217B','217C','218','218A','219','220','221','222','223','224','224A'],'XIX':['226','227','227A','228','229','230','231','232','233','234','235','236','237','238'],'XX':['241','242','243','244'],
-                      'XXI':['246','247','248','249','248','249','250','251','252','253','254','255','256','257','258','259','260','261','262','263'],'XXII':['266','267','268','269'],'XXIII':['271','271A','271B','272','272A','273','274','274','275'],'XXIV':['276','277','278','279','280','281','281A'],'XXV':['286','287','288','289','290','291','292','293','294','295','296','297','298','299','300','301','302','303','304','305','306','307'],'XXVI':['309','310','311','311A','311B','312','313','314','314A','315','316','317','317A','317B','318','319','319A','319B','319C','320','321','322','322A','323','323A','324','324A','324B','325','326','327','328','329','329A','330','331','332','333','334','334A','335','335B'],
-                      'XXVII':['336','337','338','339','340','341','342','343','344','345','346','347'],'XXVIII':['349','350','351','352','353','354'],'XXIX':['355','356','357','358','359','360','361','362','363','364','365','366','367','368','369'],
-                      'XXX':['371','372'],'XXXI':['376','377','378','379','380'],'XXXII':['381','382','383','384','385'],'XXXIII':['386','386A','386B','387','388','389','389A','390'],'XXXIV':['391','392','393','393A','394','395','395A','396','397','397A'],'XXXV':['401','402','403','404','405','406','407'],'XXXVI':['411','412','413','414','415','416','417','418','419','420','421','422','423','424','425','426','427','428','429','430','431','432','433','434','435','436','437','438','439','440','441','442','443','444','445'],'XXXVII':['416','417','418','419'],'XXXVIII':['421','422','423','424'],'XXXIX':['425','426','427'],'XXXX':['431','432','434','435','436','437','438','439','440','441'],'XXXXI':['446','447'],'XXXXII':['451','452','453','454','455','456','457'],'XXXXX':['500','501','502','503','504','505','506','507','507A','508','509','510','511','512','513','514','515',
-                        '516','517','518','519','520','521','522','523','524','525','526','527','528','529','530','531','532','533','534'],'XXXXXI':['600','605','610','615','620','625','630','635','640','645']
-
+        title_dict = {"I": ['1', '2', '3'], "II": ['5', '6', '6A', '7', '7A', '7B', '8'],
+                      "III": ['11', '11A', '12', '13', '13A', '13B', '14', '14A', '15', '15A', '16', '17', '18', '18A',
+                              '19'], "IV": ['21', '21A', '22', '22A', '23', '23A', '24', '24A',
+                                            '25', '26', '26A', '27', '27A', '28', '29', '29A', '30', '30A', '31', '31A',
+                                            '32', '34'],
+                      'V': ['35', '36', '37', '38', '39', '39A', '39B', '39C', '39D', '39E', '39F', '39G', '40'],
+                      'VI': ['41', '42', '43', '44', '45', '45A', '46', '47', '48', '49'],
+                      'VII': ['56', '57', '58'], 'VIII': ['61', '62', '63', '64', '64'],
+                      'IX': ['65', '65A', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78',
+                             '79', '80', '81', '81A', '82', '83', '83A', '84', '85', '86', '87', '88', '89', '90', '91',
+                             '91A', '92', '93', '93A', '94', '95', '95A', '96', '96A', '97', '98', '99', '99A', '100',
+                             '101', '102', '103', '104', '105', '106', '107', '108', '108A', '109'],
+                      'X': ['116', '117', '117A', '118', '118A', '119', '120', '121', '121A', '122', '123', '124',
+                            '125', '126', '127', '128'],
+                      'XI': ['131', '132', '133', '134', '135', '136', '137', '138', '139', '140', '141', '142', '143',
+                             '143A', '144'],
+                      'XII': ['146', '147', '147A', '147B', '148', '149', '150', '151', '151B', '152', '152A', '153',
+                              '154', '154A', '154B', '155'],
+                      'XIII': ['156', '157', '157A', '158', '159', '160', '161', '162', '163', '164A', '165', '165A',
+                               '166', '167', '168'], 'XIV': ['171', '172', '173'],
+                      'XV': ['174', '175', '175A', '175B', '176', '177', '178', '179', '180', '181', '182', '183',
+                             '184'],
+                      'XVI': ['186', '186A', '187', '188', '189', '189A', '190', '190A'],
+                      'XVII': ['194', '194A', '194B', '195', '196', '197', '198', '198A', '198B', '199', '200', '201',
+                               '202', '202A', '202B', '203', '204', '205', '206', '207', '208', '208A', '208B', '208C',
+                               '208D', '208E', '208F', '208G', '209', '209A'],
+                      'XVIII': ['210', '211', '212', '213', '214', '215', '216', '216A', '216B', '216C', '217', '217A',
+                                '217B', '217C', '218', '218A', '219', '220', '221', '222', '223', '224', '224A'],
+                      'XIX': ['226', '227', '227A', '228', '229', '230', '231', '232', '233', '234', '235', '236',
+                              '237', '238'], 'XX': ['241', '242', '243', '244'],
+                      'XXI': ['246', '247', '248', '249', '248', '249', '250', '251', '252', '253', '254', '255', '256',
+                              '257', '258', '259', '260', '261', '262', '263'], 'XXII': ['266', '267', '268', '269'],
+                      'XXIII': ['271', '271A', '271B', '272', '272A', '273', '274', '274', '275'],
+                      'XXIV': ['276', '277', '278', '279', '280', '281', '281A'],
+                      'XXV': ['286', '287', '288', '289', '290', '291', '292', '293', '294', '295', '296', '297', '298',
+                              '299', '300', '301', '302', '303', '304', '305', '306', '307'],
+                      'XXVI': ['309', '310', '311', '311A', '311B', '312', '313', '314', '314A', '315', '316', '317',
+                               '317A', '317B', '318', '319', '319A', '319B', '319C', '320', '321', '322', '322A', '323',
+                               '323A', '324', '324A', '324B', '325', '326', '327', '328', '329', '329A', '330', '331',
+                               '332', '333', '334', '334A', '335', '335B'],
+                      'XXVII': ['336', '337', '338', '339', '340', '341', '342', '343', '344', '345', '346', '347'],
+                      'XXVIII': ['349', '350', '351', '352', '353', '354'],
+                      'XXIX': ['355', '356', '357', '358', '359', '360', '361', '362', '363', '364', '365', '366',
+                               '367', '368', '369'],
+                      'XXX': ['371', '372'], 'XXXI': ['376', '377', '378', '379', '380'],
+                      'XXXII': ['381', '382', '383', '384', '385'],
+                      'XXXIII': ['386', '386A', '386B', '387', '388', '389', '389A', '390'],
+                      'XXXIV': ['391', '392', '393', '393A', '394', '395', '395A', '396', '397', '397A'],
+                      'XXXV': ['401', '402', '403', '404', '405', '406', '407'],
+                      'XXXVI': ['411', '412', '413', '414', '415', '416', '417', '418', '419', '420', '421', '422',
+                                '423', '424', '425', '426', '427', '428', '429', '430', '431', '432', '433', '434',
+                                '435', '436', '437', '438', '439', '440', '441', '442', '443', '444', '445'],
+                      'XXXVII': ['416', '417', '418', '419'], 'XXXVIII': ['421', '422', '423', '424'],
+                      'XXXIX': ['425', '426', '427'],
+                      'XXXX': ['431', '432', '434', '435', '436', '437', '438', '439', '440', '441'],
+                      'XXXXI': ['446', '447'], 'XXXXII': ['451', '452', '453', '454', '455', '456', '457'],
+                      'XXXXX': ['500', '501', '502', '503', '504', '505', '506', '507', '507A', '508', '509', '510',
+                                '511', '512', '513', '514', '515',
+                                '516', '517', '518', '519', '520', '521', '522', '523', '524', '525', '526', '527',
+                                '528', '529', '530', '531', '532', '533', '534'],
+                      'XXXXXI': ['600', '605', '610', '615', '620', '625', '630', '635', '640', '645']
 
                       }
 
@@ -1069,7 +1138,7 @@ class KYParseHtml(ParserBase):
         cite_li_tags = []
         titleid = ""
 
-        for tag in self.soup.find_all(["p","li"]):
+        for tag in self.soup.find_all(["p", "li"]):
 
             if re.search(r"KRS\s?\d+[a-zA-Z]*\.\d+(\(\d+\))*|"
                          r"(KRS Chapter \d+[a-zA-Z]*)|"
@@ -1078,7 +1147,7 @@ class KYParseHtml(ParserBase):
                          r"(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))", tag.text.strip()):
                 # cite_li_tags.append(tag)
                 text = str(tag)
-            #     print(tag)
+                # print(tag)
 
                 for match in [x[0] for x in re.findall(r'((KRS\s?\d+[a-zA-Z]*\.\d+(\(\d+\))*(\(\D\))*)|'
                                                        r'(Chapter \d+[a-zA-Z]*)|'
@@ -1089,127 +1158,137 @@ class KYParseHtml(ParserBase):
                                                        r'(KRS\s*\d+[a-zA-Z]*\.\d+\(\d+\))'
                         , tag.get_text())]:
 
-                    match = re.sub(r'KRS\s', '', match.strip())
-                    # print(match)
+                    if re.search(r'^(\d+\D*\.\d+)', tag.text.strip()):
+                        continue
+                    else:
 
-                    inside_text = re.sub(r'<p\sclass="\w\d+">|</p>|<b>|</b>', '', text, re.DOTALL)
-                    tag.clear()
+                        match = re.sub(r'KRS\s', '', match.strip())
+                        # print(match)
 
-                    # 1.2025/1A.2025
-                    if re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()):
-                        chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+', match.strip()).group("chap")
-                        # print(chap_num)
-                        sec_num = re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()).group().zfill(2)
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}'
-                            target = "_self"
+                        inside_text = re.sub(
+                            r'<p\sclass="\w\d+">|</p>|<b>|</b>|<li\sclass="\w\d+"\sid="\w+\.\d+(\.\d+)?ol\d\d+">|</li>',
+                            '', text, re.DOTALL)
 
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
+                        # print(inside_text)
 
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}'
+                        tag.clear()
+
+                        # 1.2025/1A.2025
+                        if re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()):
+                            chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+', match.strip()).group("chap")
+                            # print(chap_num)
+                            sec_num = re.search(r'(\d+[a-zA-Z]*\.\d+)', match.strip()).group().zfill(2)
+                            if chap_num in chapter_list:
+                                tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}'
+                                target = "_self"
+
+                            else:
+                                for key, value in title_dict.items():
+                                    if chap_num in value:
+                                        titleid = key
+                                        titleid1 = self.convert_roman_to_digit(key)
+
+                                        tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}'
+                                        target = "_blank"
+
+                        # 1.2025(a)/#1A.2025(a)
+                        if re.search(r'\d+[a-zA-Z]*\.\d+(\(\d+\))', match.strip()):
+                            # print(match)
+                            chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))', match.strip()).group("chap")
+                            # print(chap_num)
+                            sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
+                            ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
+                            # print(ol_num)
+
+                            if chap_num in chapter_list:
+                                tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
+                                target = "_self"
+
+                            else:
+                                for key, value in title_dict.items():
+                                    if chap_num in value:
+                                        titleid = key
+                                        titleid1 = self.convert_roman_to_digit(key)
+
+                                        tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
+                                        target = "_blank"
+
+                        # 1.2025(a)(1)/1A.2025(a)(1)
+                        if re.search(r'(\d+[a-zA-Z]*\.\d+(\(\d+\))(\(\D\)))', match.strip()):
+                            # print(match)
+                            chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))(\(\D\))', match.strip()).group(
+                                "chap")
+                            # print(chap_num)
+                            sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
+                            ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
+                            inr_ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\(\d+\)\((?P<innr_ol>\D)\)', match.strip()).group(
+                                "innr_ol")
+                            # print(inr_ol_num)
+
+                            if chap_num in chapter_list:
+                                tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
+                                target = "_self"
+
+                            else:
+                                for key, value in title_dict.items():
+                                    if chap_num in value:
+                                        titleid = key
+                                        titleid1 = self.convert_roman_to_digit(key)
+
+                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
                                     target = "_blank"
 
-                    # 1.2025(a)/#1A.2025(a)
-                    if re.search(r'\d+[a-zA-Z]*\.\d+(\(\d+\))', match.strip()):
-                        # print(match)
-                        chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))', match.strip()).group("chap")
-                        # print(chap_num)
-                        sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
-                        ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
-                        # print(ol_num)
+                        # Chapter I
+                        if re.search(r'(Chapter \d+[a-zA-Z]*)', match.strip()):
+                            chap_num = re.search(r'Chapter (?P<chap>\d+[a-zA-Z]*)', match.strip()).group("chap")
+                            if chap_num in chapter_list:
+                                tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}'
+                                target = "_self"
+                            else:
+                                for key, value in title_dict.items():
+                                    if chap_num in value:
+                                        titleid = key
+                                        titleid1 = self.convert_roman_to_digit(key)
+                                        tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}'
+                                        # print(tag_id)
+                                        target = "_blank"
 
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
-                            target = "_self"
+                        # Title I Chapter I
+                        if re.search(r'(Title\s+?(\D+|\d+),\s+?Chapter\s+?(\D+|\d+)?,)', match.strip()):
+                            tag_id = re.search(r'(Title\s+?(?P<tid>\D+|\d+),\s+?Chapter\s+?(?P<cid>\D+|\d+)?,)',
+                                               match.strip())
 
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
+                            title_id = tag_id.group("tid")
+                            chapter = tag_id.group("cid")
 
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}'
-                                    target = "_blank"
+                            if chapter.isalpha():
+                                chap_num = self.convert_roman_to_digit(chapter)
+                            else:
+                                chap_num = chapter
 
-                    # 1.2025(a)(1)/1A.2025(a)(1)
-                    if re.search(r'(\d+[a-zA-Z]*\.\d+(\(\d+\))(\(\D\)))', match.strip()):
-                        # print(match)
-                        chap_num = re.search(r'(?P<chap>\d+[a-zA-Z]*)\.\d+(\(\d+\))(\(\D\))', match.strip()).group(
-                            "chap")
-                        # print(chap_num)
-                        sec_num = re.search(r'\d+[a-zA-Z]*\.\d+', match.strip()).group().zfill(2)
-                        ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\((?P<ol>\d+)\)', match.strip()).group("ol")
-                        inr_ol_num = re.search(r'\d+[a-zA-Z]*\.\d+\(\d+\)\((?P<innr_ol>\D)\)', match.strip()).group(
-                            "innr_ol")
-                        # print(inr_ol_num)
+                            title = self.convert_roman_to_digit(title_id)
 
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
-                            target = "_self"
-
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-
-                                tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}s{sec_num}ol1{ol_num}{inr_ol_num}'
+                            if str(chap_num) in chapter_list:
+                                tag_id = f'#t{self.title_id}c{chap_num:02}'
+                                target = "_self"
+                            else:
+                                tag_id = f'gov.ky.krs.title.{title}.html#t{titleid}c{chap_num:02}'
                                 target = "_blank"
 
-                    # Chapter I
-                    if re.search(r'(Chapter \d+[a-zA-Z]*)', match.strip()):
-                        chap_num = re.search(r'Chapter (?P<chap>\d+[a-zA-Z]*)', match.strip()).group("chap")
-                        if chap_num in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num.zfill(2)}'
-                            target = "_self"
-                        else:
-                            for key, value in title_dict.items():
-                                if chap_num in value:
-                                    titleid = key
-                                    titleid1 = self.convert_roman_to_digit(key)
-                                    tag_id = f'gov.ky.krs.title.{titleid1:02}.html#t{titleid}c{chap_num.zfill(2)}'
-                                    # print(tag_id)
-                                    target = "_blank"
+                        # print(tag)
 
-                    # Title I Chapter I
-                    if re.search(r'(Title\s+?(\D+|\d+),\s+?Chapter\s+?(\D+|\d+)?,)', match.strip()):
-                        tag_id = re.search(r'(Title\s+?(?P<tid>\D+|\d+),\s+?Chapter\s+?(?P<cid>\D+|\d+)?,)',
-                                           match.strip())
+                        text = re.sub(fr'\s{re.escape(match)}',
+                                      f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
+                                      inside_text, re.I)
+                        tag.append(text)
 
-                        title_id = tag_id.group("tid")
-                        chapter = tag_id.group("cid")
-
-                        if chapter.isalpha():
-                            chap_num = self.convert_roman_to_digit(chapter)
-                        else:
-                            chap_num = chapter
-
-                        title = self.convert_roman_to_digit(title_id)
-
-                        if str(chap_num) in chapter_list:
-                            tag_id = f'#t{self.title_id}c{chap_num:02}'
-                            target = "_self"
-                        else:
-                            tag_id = f'gov.ky.krs.title.{title}.html#t{titleid}c{chap_num:02}'
-                            target = "_blank"
-
-                    text = re.sub(fr'\s{re.escape(match)}',
-                                  f'<cite class="ocky"><a href="{tag_id}" target="{target}">{match}</a></cite>',
-                                  inside_text, re.I)
-                    tag.append(text)
-
-
+                        # print(tag)
 
     # writting soup to the file
     def write_soup_to_file(self):
         soup_str = str(self.soup.prettify(formatter=None))
         with open(f"../cic-code-ky/transforms/ky/ocky/r{self.release_number}/{self.html_file_name}", "w") as file:
             file.write(soup_str)
-
 
     # add css file
     def css_file(self):
@@ -1242,9 +1321,8 @@ class KYParseHtml(ParserBase):
         self.wrap_with_ordered_tag1()
         self.create_numberical_ol()
 
-
-        self.add_citation1()
-        # self.add_citation()
+        # self.add_citation1()
+        self.add_citation()
 
         self.add_watermark_and_remove_class_name()
 
