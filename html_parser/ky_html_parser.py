@@ -20,9 +20,7 @@ class KYParseHtml(ParserBase):
         This document is not subject to copyright and is in the public domain.
         """
 
-
         self.start_parse()
-
 
 
     def create_page_soup(self):
