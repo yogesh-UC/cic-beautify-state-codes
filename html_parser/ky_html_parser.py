@@ -675,72 +675,72 @@ class KYParseHtml(ParserBase):
     #     print("ol tag is created")
 
     # create div tags
-    def create_and_wrap_with_div_tag(self):
-        self.soup = BeautifulSoup(self.soup.prettify(formatter=None), features='lxml')
-        for header in self.soup.findAll('h2'):
-            new_chap_div = self.soup.new_tag('div')
-            sec_header = header.find_next_sibling()
-            header.wrap(new_chap_div)
-            while True:
-                next_sec_tag = sec_header.find_next_sibling()
-                if sec_header.name == 'h3':
-                    new_sec_div = self.soup.new_tag('div')
-                    tag_to_wrap = sec_header.find_next_sibling()
-                    sec_header.wrap(new_sec_div)
-                    while True:
-                        next_tag = tag_to_wrap.find_next_sibling()
-                        if tag_to_wrap.name == 'h4':
-                            new_sub_sec_div = self.soup.new_tag('div')
-                            inner_tag = tag_to_wrap.find_next_sibling()
-                            tag_to_wrap.wrap(new_sub_sec_div)
-
-                            while True:
-                                inner_next_tag = inner_tag.find_next_sibling()
-                                if inner_tag.name == 'h5':
-                                    new_h5_div = self.soup.new_tag('div')
-                                    inner_h5_tag = inner_tag.find_next_sibling()
-                                    inner_tag.wrap(new_h5_div)
-                                    while True:
-                                        next_h5_child_tag = inner_h5_tag.find_next_sibling()
-                                        new_h5_div.append(inner_h5_tag)
-                                        inner_next_tag = next_h5_child_tag
-                                        if not next_h5_child_tag or next_h5_child_tag.name in ['h3', 'h2', 'h4', 'h5']:
-                                            break
-                                        inner_h5_tag = next_h5_child_tag
-                                    inner_tag = new_h5_div
-                                new_sub_sec_div.append(inner_tag)
-                                next_tag = inner_next_tag
-                                if not inner_next_tag or inner_next_tag.name in ['h3',
-                                                                                 'h2'] or inner_next_tag.name == 'h4' \
-                                        and inner_next_tag.get('class'):
-                                    break
-                                inner_tag = inner_next_tag
-                            tag_to_wrap = new_sub_sec_div
-                        elif tag_to_wrap.name == 'h5':
-                            new_sub_sec_div = self.soup.new_tag('div')
-                            inner_tag = tag_to_wrap.find_next_sibling()
-                            tag_to_wrap.wrap(new_sub_sec_div)
-                            while True:
-                                inner_next_tag = inner_tag.find_next_sibling()
-                                new_sub_sec_div.append(inner_tag)
-                                next_tag = inner_next_tag
-                                if not inner_next_tag or inner_next_tag.name in ['h3', 'h2', 'h4', 'h5']:
-                                    break
-                                inner_tag = inner_next_tag
-                            tag_to_wrap = new_sub_sec_div
-                        if not re.search(r'h\d', tag_to_wrap.name):
-                            new_sec_div.append(tag_to_wrap)
-                        next_sec_tag = next_tag
-                        if not next_tag or next_tag.name in ['h3', 'h2']:
-                            break
-                        tag_to_wrap = next_tag
-                    sec_header = new_sec_div
-                new_chap_div.append(sec_header)
-                if not next_sec_tag or next_sec_tag.name == 'h2':
-                    break
-                sec_header = next_sec_tag
-
-        print('wrapped div tags')
+    # def create_and_wrap_with_div_tag(self):
+    #     self.soup = BeautifulSoup(self.soup.prettify(formatter=None), features='lxml')
+    #     for header in self.soup.findAll('h2'):
+    #         new_chap_div = self.soup.new_tag('div')
+    #         sec_header = header.find_next_sibling()
+    #         header.wrap(new_chap_div)
+    #         while True:
+    #             next_sec_tag = sec_header.find_next_sibling()
+    #             if sec_header.name == 'h3':
+    #                 new_sec_div = self.soup.new_tag('div')
+    #                 tag_to_wrap = sec_header.find_next_sibling()
+    #                 sec_header.wrap(new_sec_div)
+    #                 while True:
+    #                     next_tag = tag_to_wrap.find_next_sibling()
+    #                     if tag_to_wrap.name == 'h4':
+    #                         new_sub_sec_div = self.soup.new_tag('div')
+    #                         inner_tag = tag_to_wrap.find_next_sibling()
+    #                         tag_to_wrap.wrap(new_sub_sec_div)
+    #
+    #                         while True:
+    #                             inner_next_tag = inner_tag.find_next_sibling()
+    #                             if inner_tag.name == 'h5':
+    #                                 new_h5_div = self.soup.new_tag('div')
+    #                                 inner_h5_tag = inner_tag.find_next_sibling()
+    #                                 inner_tag.wrap(new_h5_div)
+    #                                 while True:
+    #                                     next_h5_child_tag = inner_h5_tag.find_next_sibling()
+    #                                     new_h5_div.append(inner_h5_tag)
+    #                                     inner_next_tag = next_h5_child_tag
+    #                                     if not next_h5_child_tag or next_h5_child_tag.name in ['h3', 'h2', 'h4', 'h5']:
+    #                                         break
+    #                                     inner_h5_tag = next_h5_child_tag
+    #                                 inner_tag = new_h5_div
+    #                             new_sub_sec_div.append(inner_tag)
+    #                             next_tag = inner_next_tag
+    #                             if not inner_next_tag or inner_next_tag.name in ['h3',
+    #                                                                              'h2'] or inner_next_tag.name == 'h4' \
+    #                                     and inner_next_tag.get('class'):
+    #                                 break
+    #                             inner_tag = inner_next_tag
+    #                         tag_to_wrap = new_sub_sec_div
+    #                     elif tag_to_wrap.name == 'h5':
+    #                         new_sub_sec_div = self.soup.new_tag('div')
+    #                         inner_tag = tag_to_wrap.find_next_sibling()
+    #                         tag_to_wrap.wrap(new_sub_sec_div)
+    #                         while True:
+    #                             inner_next_tag = inner_tag.find_next_sibling()
+    #                             new_sub_sec_div.append(inner_tag)
+    #                             next_tag = inner_next_tag
+    #                             if not inner_next_tag or inner_next_tag.name in ['h3', 'h2', 'h4', 'h5']:
+    #                                 break
+    #                             inner_tag = inner_next_tag
+    #                         tag_to_wrap = new_sub_sec_div
+    #                     if not re.search(r'h\d', tag_to_wrap.name):
+    #                         new_sec_div.append(tag_to_wrap)
+    #                     next_sec_tag = next_tag
+    #                     if not next_tag or next_tag.name in ['h3', 'h2']:
+    #                         break
+    #                     tag_to_wrap = next_tag
+    #                 sec_header = new_sec_div
+    #             new_chap_div.append(sec_header)
+    #             if not next_sec_tag or next_sec_tag.name == 'h2':
+    #                 break
+    #             sec_header = next_sec_tag
+    #
+    #     print('wrapped div tags')
 
     def convert_roman_to_digit(self, roman):
         value = {'M': 1000, 'D': 500, 'C': 100, 'L': 50, 'X': 10, 'V': 5, 'I': 1}
@@ -1123,21 +1123,39 @@ class KYParseHtml(ParserBase):
             if re.match(pattern, tag.text.strip()):
                 tag.name = "li"
 
+            elif re.match(r'^(Article\s*[I,V,X]*\.)', tag.text.strip()):
+                tag.name = "h4"
+                prev_id = tag.find_previous("h3").get("id")
+                article_id = re.search(r'^(Article\s*(?P<ar_id>[I,V,X]*))',tag.text.strip()).group("ar_id")
+                tag["id"] = f'{prev_id}a{article_id}'
+
 
         # I.
             if re.match(r'^([A-Z]{0,3}\.)', current_tag):
-                ol_rom = tag
-                if re.search(r'^(I\.)', current_tag):
-                    ol_tag1 = self.soup.new_tag("ol",type="I")
-                    tag.wrap(ol_tag1)
 
+                if re.match(r'^([I,V,X]{0,3}\.)', current_tag):
+                    ol_rom = tag
+                    if re.search(r'^(I\.)', current_tag):
+                        ol_tag1 = self.soup.new_tag("ol",type="I")
+                        tag.wrap(ol_tag1)
+
+                    else:
+                        ol_tag1.append(tag)
+
+                    tag_id = re.search(r'^(?P<id>[A-Z]{0,3})', current_tag).group('id')
+                    prev_header_id = tag.find_previous("h3").get("id")
+                    tag["id"] = f"{prev_header_id}ol1{tag_id}"
                 else:
-                    ol_tag1.append(tag)
+                    if re.search(r'^(A\.)', current_tag):
+                        ol_tag1 = self.soup.new_tag("ol",type="A")
+                        tag.wrap(ol_tag1)
 
-                tag_id = re.search(r'^(?P<id>[A-Z]{0,3})', current_tag).group('id')
-                prev_header_id = tag.find_previous("h3").get("id")
-                tag["id"] = f"{prev_header_id}ol1{tag_id}"
+                    else:
+                        ol_tag1.append(tag)
 
+                    tag_id = re.search(r'^(?P<id>[A-Z]{0,3})', current_tag).group('id')
+                    prev_header_id = tag.find_previous("h4").get("id")
+                    tag["id"] = f"{prev_header_id}ol1{tag_id}"
 
          # # (1)
             if re.match(Num_bracket_pattern, current_tag):
@@ -1177,9 +1195,6 @@ class KYParseHtml(ParserBase):
                         tag["id"] = f"{prev_header_id}ol1{tag_id}"
 
 
-
-
-
                     # tag_id = re.search(r'^(\((?P<id>\d+)\))', current_tag).group('id')
                     # prev_header_id = tag.find_previous("h3").get("id")
                     # tag["id"] = f"{prev_header_id}ol1{tag_id}"
@@ -1194,6 +1209,7 @@ class KYParseHtml(ParserBase):
                     tag.wrap(ol_tag2)
                     ol_num.append(ol_tag2)
                 else:
+                    # print(current_tag)
                     ol_tag2.append(tag)
 
                 # print(current_tag)
@@ -1294,17 +1310,15 @@ class KYParseHtml(ParserBase):
                         tag.find_previous("li").append(rom_ol_tag)
 
                     elif re.match(r'[a-z]\.', current_tag):
+
                         ol_tag3.append(tag)
 
                         tag["id"] = f"{prev_alpha_id}{tag_id}"
 
 
                     else:
+
                         rom_ol_tag.append(tag)
-
-
-
-
 
                 if tag.span:
                     tag.span.string = ""
@@ -1766,7 +1780,7 @@ class KYParseHtml(ParserBase):
                     else:
                         new_ul_tag.append(note_tag)
 
-                # child
+                # -
                 if re.match(r'^(\d+\.\s*—\s*[a-zA-Z]+)|^(\d+\.\d+)', note_tag.text.strip())  and note_tag.name == "li" :
                     # note_tag.name = "li"
                     if re.match(r'^(\d+\.\s*[a-zA-Z]+)|^(\d+\.\d+)', note_tag.find_previous().text.strip()) and note_tag.name == "li":
@@ -1777,7 +1791,7 @@ class KYParseHtml(ParserBase):
                     else:
                         innr_ul_tag.append(note_tag)
 
-                # # grand child
+                # # ---
                 if re.match(r'^(\d+\.\s*—\s*—\s*[a-zA-Z]+)', note_tag.text.strip()) and note_tag.name == "li":
                     # note_tag.name = "li"
                     if re.match(r'^(\d+\.\s*—\s*—\s*[a-zA-Z]+)',
@@ -1788,7 +1802,7 @@ class KYParseHtml(ParserBase):
                         note_tag.wrap(innr_ul_tag1)
                         note_tag.find_previous("li").append(innr_ul_tag1)
 
-                # # super grand child
+                # # ----
                 if re.match(r'^(\d+\.\s*—\s*—\s*—\s*[a-zA-Z]+)', note_tag.text.strip()) and note_tag.name == "li":
                     # note_tag.name = "li"
                     if re.match(r'^(\d+\.\s*—\s*—\s*—\s*[a-zA-Z]+)',
@@ -1846,20 +1860,20 @@ class KYParseHtml(ParserBase):
                         p_tag.insert(0, innr_nav_link1)
 
                     elif re.match(r'^(\d+\.\s*—\s*—\s*[a-zA-Z]+)', p_tag.text.strip()):
-                        child_id = innr_nav_link1["href"]
+                        innr_id1 = innr_nav_link1["href"]
                         sub_sec_id = re.sub(r'[\d\W]', '', p_tag.get_text()).lower()
                         innr_nav_link2 = self.soup.new_tag('a')
                         innr_nav_link2.string = p_tag.text
-                        innr_nav_link2["href"] = f"{child_id}-{sub_sec_id}"
+                        innr_nav_link2["href"] = f"{innr_id1}-{sub_sec_id}"
                         p_tag.string = ''
                         p_tag.insert(0, innr_nav_link2)
 
                     elif re.match(r'^(\d+\.\s*—\s*—\s*—\s*[a-zA-Z]+)', p_tag.text.strip()):
-                        grand_child_id = innr_nav_link2["href"]
+                        innr_id2 = innr_nav_link2["href"]
                         sub_sec_id = re.sub(r'[\d\W]', '', p_tag.get_text()).lower()
                         innr_nav_link3 = self.soup.new_tag('a')
                         innr_nav_link3.string = p_tag.text
-                        innr_nav_link3["href"] = f"{grand_child_id}-{sub_sec_id}"
+                        innr_nav_link3["href"] = f"{innr_id2}-{sub_sec_id}"
                         p_tag.string = ''
                         p_tag.insert(0, innr_nav_link3)
 
@@ -1909,7 +1923,9 @@ class KYParseHtml(ParserBase):
         self.create_chap_sec_nav1()
         self.create_link_to_notetodecision_nav1()
         self.create_ul_tag_to_notes_to_decision2()
-        self.create_and_wrap_with_div_tag()
+
+        # self.create_and_wrap_with_div_tag()
+
         self.wrap_with_ordered_tag()
 
 
@@ -1918,10 +1934,10 @@ class KYParseHtml(ParserBase):
         # self.create_and_wrap_with_div_tag()
         # self.wrap_with_ordered_tag()
 
-        #
+
         self.create_numberical_ol()
-        # self.add_citation()
-        # self.add_watermark_and_remove_class_name()
+        self.add_citation()
+        self.add_watermark_and_remove_class_name()
 
         self.write_soup_to_file()
         print(datetime.now() - start_time)
