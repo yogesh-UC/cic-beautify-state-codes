@@ -1172,7 +1172,6 @@ class KYParseHtml(ParserBase):
         ol_rom = None
 
 
-
         for tag in self.soup.findAll("p", class_=self.class_regex["ol"]):
             current_tag = tag.text.strip()
 
@@ -1284,10 +1283,12 @@ class KYParseHtml(ParserBase):
                     # print(current_tag)
                     ol_tag2.append(tag)
 
-
+                     # print(current_tag)
 
                 tag_id = re.search(r'^(\(\s*(?P<id>[a-z][a-z]?)\s*\))', current_tag).group('id')
+
                 prev_header_id = ol_num.get("id")
+                alpha_id = f"{prev_header_id}{tag_id}"
 
                 tag["id"] = f"{prev_header_id}{tag_id}"
 
@@ -1340,28 +1341,25 @@ class KYParseHtml(ParserBase):
 
             # 2.a.
             if re.match(r'(\d+\.(\s*[a-z]\.))', current_tag):
-                ol_num_alpha = tag
                 ol_tag3 = self.soup.new_tag("ol", type="a", **{"class": "alpha"})
                 inner_a_tag = self.soup.new_tag("li")
 
                 tag_text = re.sub(r'(\d+\.(\s*[a-z]\.))', '', current_tag)
                 inner_a_tag.append(tag_text)
 
-                pre_id = ol_alpha.get("id")
+                prev_id = ol_alpha.get("id")
                 cur_id = re.search(r'(\d+\.(\s*[a-z]\.))', current_tag).group()
                 cur_id = re.sub(r'[\s\.]','',cur_id)
 
-                inner_a_tag["id"] = f'{pre_id}{cur_id}'
+
+
+                inner_a_tag["id"] = f'{prev_id}{cur_id}'
                 # print(inner_a_tag)
                 tag.clear()
 
 
                 ol_tag3.append(inner_a_tag)
                 tag.insert(1, ol_tag3)
-
-
-
-
 
 
 
@@ -1380,10 +1378,10 @@ class KYParseHtml(ParserBase):
 
                     # tag["id"] = f"{current_id}{tag_id}"
 
-                    prev_alpha_id = tag.find_previous("li").get("id")
+                    prev_id = tag.find_previous("li").get("id")
 
 
-                    tag["id"] = f"{prev_alpha_id}{tag_id}"
+                    tag["id"] = f"{prev_id}{tag_id}"
                     # print(tag)
 
                 else:
@@ -1396,8 +1394,9 @@ class KYParseHtml(ParserBase):
                     elif re.match(r'[a-z]\.', current_tag):
                         # print(current_tag)
                         ol_tag3.append(tag)
-                        prev_alpha_id = tag.find_previous("li").get("id")
-                        tag["id"] = f"{current_id}{tag_id}"
+                        pre_id = ol_num_id.get("id")
+                        # prev_alpha_id = tag.find_previous("li").get("id")
+                        tag["id"] = f"{pre_id}{tag_id}"
 
 
                     else:
@@ -1422,8 +1421,10 @@ class KYParseHtml(ParserBase):
 
                 ol_tag5.append(li_tag)
 
-                prev_id = ol_inr_apha.get("id")
-                li_tag["id"] = f"{prev_id}{tag_id1}{tag_id2}"
+                # prev_id = ol_inr_apha.get("id")
+                prev_id = ol_alpha.get("id")
+                # prev_id = li_tag.find_previous("li").get("id")
+                li_tag["id"] = f"{prev_id}{tag_id2}"
                 prev_header_id = f"{prev_id}{tag_id1}"
                 main_olcount = 2
 
@@ -1434,6 +1435,7 @@ class KYParseHtml(ParserBase):
 
              # 1. and previous (1)(a)
             if re.match(num_pattern, current_tag):
+                ol_num_id = tag
                 if re.match(r'^1\.', current_tag):
 
                     ol_tag5 = self.soup.new_tag("ol")
@@ -1454,7 +1456,8 @@ class KYParseHtml(ParserBase):
                 elif tag.find_previous("li"):
 
                     ol_tag5.append(tag)
-                    prev_header_id = ol_alpha.get("id")
+
+                    # prev_header_id = ol_alpha.get("id")
                     current_id = f"{prev_header_id}{main_olcount}"
                     tag["id"] = f"{prev_header_id}{main_olcount}"
                     main_olcount += 1
@@ -2151,6 +2154,9 @@ class KYParseHtml(ParserBase):
 
                         elif re.match(r'^(\d+\.(\d+\.)?\s*—\s*[a-zA-Z]+)', p_tag.text.strip()):
 
+
+
+
                             p_tag_text = re.sub(r'[\s.—]','',p_tag.text.strip()).lower()
 
                             prev_id = nav_link["href"]
@@ -2159,6 +2165,8 @@ class KYParseHtml(ParserBase):
                             innr_nav_link1.string = p_tag.text
 
                             if p_tag_text in nav_link_list:
+
+
 
                                 innr_nav_link1["href"] = f"{prev_id}-{sub_sec_id}.{count}"
                                 count += 1
