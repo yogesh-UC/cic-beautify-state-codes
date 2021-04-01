@@ -1,10 +1,16 @@
+
+"""
+    - this file accepts the text util generated html and parse it
+    - here the html is converted in such a way that it matches the html5 standards
+    - the start_parse method is called by parser base
+    - this method based on the file type(constitution files or title files) decides which methods to run
+"""
+
+
 from bs4 import BeautifulSoup, Doctype
 import re
 from datetime import datetime
 from parser_base import ParserBase
-
-
-# if re.search('constitution', self.html_file_name):
 
 
 class KYParseHtml(ParserBase):
@@ -27,6 +33,14 @@ class KYParseHtml(ParserBase):
 
     def create_page_soup(self):
 
+        """
+        - Read the input html to parse and convert it to Beautifulsoup object
+        - Input Html will be html 4 so replace html tag which is self.soup.contents[0] with <html>
+          which is syntax of html tag in html 5
+        - add attribute 'lang' to html tag with value 'en'
+        :return:
+        """
+
         with open(f'transforms/ky/ocky/r{self.release_number}/raw/{self.html_file_name}') as open_file:
             html_data = open_file.read()
         self.soup = BeautifulSoup(html_data, features="lxml")
@@ -35,6 +49,11 @@ class KYParseHtml(ParserBase):
         print('created soup')
 
     def get_class_name(self):
+
+        """
+                    - Find the textutil generated class names for each type of tag (h1, h2, ....)
+                      using re pattern specified in self.tag_type_dict
+        """
         for key, value in self.class_regex.items():
             tag_class = self.soup.find(
                 lambda tag: tag.name == 'p' and re.search(self.class_regex.get(key), tag.get_text().strip()) and
@@ -579,15 +598,10 @@ class KYParseHtml(ParserBase):
                     if tag.parent.name == "ul":
                         continue
 
-
-
-
                     else:
 
                         match = re.sub(r'KRS\s', '', match.strip())
                         tag.clear()
-
-
 
                         inside_text = re.sub(
                             r'<p\sclass="\w\d+">|</p>|<b>|</b>|^<li\sclass="\w\d+"\sid="\w+\.\d+(\.\d+)?ol\d\d+">|'
@@ -3342,6 +3356,13 @@ class KYParseHtml(ParserBase):
 
     # writting soup to the file
     def write_soup_to_file(self):
+
+        """
+            - add the space before self closing meta tags
+            - convert html to str
+            - write html str to an output file
+        """
+
         soup_str = str(self.soup.prettify(formatter=None))
         with open(f"../cic-code-ky/transforms/ky/ocky/r{self.release_number}/{self.html_file_name}", "w") as file:
             file.write(soup_str)
@@ -3359,6 +3380,13 @@ class KYParseHtml(ParserBase):
         head.append(css_link)
 
     def start_parse(self):
+
+        """
+                     - set the values to instance variables
+                     - check if the file is constitution file or title file
+                     - based on file passed call the methods to parse the passed htmls
+        """
+
         self.release_label = f'Release-{self.release_number}'
         print(self.html_file_name)
         start_time = datetime.now()
