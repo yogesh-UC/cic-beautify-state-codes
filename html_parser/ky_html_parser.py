@@ -1,5 +1,6 @@
 
 """
+
     - this file accepts the text util generated html and parse it
     - here the html is converted in such a way that it matches the html5 standards
     - the start_parse method is called by parser base
@@ -484,10 +485,6 @@ class KYParseHtml(ParserBase):
         # for all_article in self.soup.find_all("li"):
         #     if all_article.text == "":
         #         print(all_article)
-
-
-
-
 
 
     # citation
