@@ -57,7 +57,7 @@ Currently this code supports following states:
 
 In subsequent months, we intend to add two more features:
 
-1. Extend the code to handle the official codes Tennessee, Kentucky, and Colorado.
+1. Extend the code to handle the official codes Colorado and Idaho.
 2. Add a "redline" capability to show diffs. 
 
 **REQUIREMENTS AND INSTALLATION**
